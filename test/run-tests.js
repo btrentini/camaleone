@@ -772,6 +772,8 @@ test("picker html contains the simplified workflow controls", () => {
 test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
   assert.equal(manifest.icon, "assets/icons/store/camaleone.png");
+  assert.ok(manifest.description.includes("sober mode"));
+  assert.ok(manifest.description.includes("favourites"));
   assert.equal(manifest.contributes.configuration.properties["camaleone.sober"].default, true);
 
   for (const relativePath of [
@@ -821,6 +823,17 @@ test("README includes marketplace how-to-use instructions", () => {
   assert.ok(readme.includes("Click `Save as favourite...` to store a palette"));
   assert.ok(readme.includes("Use `Restore previous`"));
   assert.ok(readme.indexOf("## How To Use") < readme.indexOf("## Local Development"));
+});
+
+test("README includes marketplace project description and feature copy", () => {
+  const readme = textFile("README.md");
+  assert.ok(readme.includes("## Marketplace Description"));
+  assert.ok(readme.includes("distinct two-color identity"));
+  assert.ok(readme.includes("default `Sober` mode"));
+  assert.ok(readme.includes("customize individual surfaces"));
+  assert.ok(readme.includes("Save favourite palettes"));
+  assert.ok(readme.includes("> \"It's way better than other solutions like Peacock.\""));
+  assert.ok(readme.indexOf("## Marketplace Description") < readme.indexOf("## How To Use"));
 });
 
 test("webview script is syntactically valid after state injection", () => {

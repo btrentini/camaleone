@@ -1,7 +1,7 @@
 {
   "name": "camaleone",
   "displayName": "Camaleone",
-  "description": "Apply gradient-inspired workspace colors to VS Code and Cursor windows.",
+  "description": "Gradient-inspired VS Code and Cursor window colors with sober mode, per-surface controls, favourites, and restore.",
   "version": "0.1.0",
   "publisher": "local",
   "license": "MIT",
