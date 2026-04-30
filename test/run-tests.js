@@ -395,7 +395,7 @@ test("color relationship changes the palette path without replacing selected col
   assert.notEqual(complementary["panel.border"], manual["panel.border"]);
 });
 
-test("sober mode neutralizes managed surfaces except title activity and status", () => {
+test("sober mode neutralizes generated surfaces but allows explicit custom surfaces", () => {
   resetState();
   const sober = testApi.createColorCustomizations({
     ...testApi.DEFAULT_CHOICES,
@@ -415,6 +415,26 @@ test("sober mode neutralizes managed surfaces except title activity and status",
   assert.equal(sober["titleBar.activeBackground"], "#112233");
   assert.equal(sober["activityBar.background"], "#172839");
   assert.equal(sober["statusBar.background"], "#445566");
+  assert.equal(sober["sideBar.background"], "#ffffff");
+  assert.equal(sober["panel.border"], "#ffffff");
+  assert.equal(sober["button.background"], "#ffffff");
+  assert.equal(sober["tab.activeBorderTop"], "#ffffff");
+  assert.equal(sober["editor.selectionBackground"], undefined);
+});
+
+test("default sober mode keeps generated secondary surfaces neutral", () => {
+  resetState();
+  const sober = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#112233",
+    endColor: "#445566",
+    intensity: 25,
+    includeEditorAccent: true,
+    monochromatic: true,
+    sober: true,
+    surfaceOverrides: {}
+  });
+
   assert.equal(sober["sideBar.background"], "#1e1e1e");
   assert.equal(sober["panel.border"], "#1e1e1e");
   assert.equal(sober["button.background"], "#1e1e1e");
@@ -791,6 +811,10 @@ test("picker html contains the simplified workflow controls", () => {
     "Customize",
     "Save as favourite...",
     "Options",
+    "Color behavior",
+    "Target",
+    "Presets",
+    "Actions",
     "Monochromatic",
     "Colour relationship",
     "Manual",
@@ -816,8 +840,9 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("options-grid"));
   assert.ok(html.includes("option-item"));
   assert.ok(html.includes("option-checkbox-group"));
+  assert.ok(html.includes("options-section"));
+  assert.ok(html.includes("options-section-title"));
   assert.ok(html.includes("options-actions"));
-  assert.ok(html.includes("save-favorite-row"));
   assert.ok(html.includes("choose from the list..."));
   assert.ok(html.includes("select.placeholder"));
   assert.ok(html.includes("let selectedFavoriteName;"));
@@ -832,6 +857,7 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("camaleone-sil-2.png"));
   assert.ok(html.includes("save-favorite-icon"));
   assert.ok(html.includes("camaleone-sil-3.png"));
+  assert.ok(html.includes('id="saveFavorite" class="secondary"'));
   assert.ok(html.includes("align-items: stretch;"));
   assert.ok(html.includes("grid-template-rows: 46px 1fr;"));
   assert.ok(html.includes("min-height: 46px;"));

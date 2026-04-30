@@ -1404,7 +1404,10 @@ function createColorCustomizations(choices) {
   };
 
   if (choices.sober) {
-    return createSoberColorCustomizations(startColor, endColor, colorRelationship);
+    return createSoberColorCustomizations(startColor, endColor, colorRelationship, {
+      includeEditorAccent: choices.includeEditorAccent,
+      surfaceOverrides: overrides
+    });
   }
 
   // Non-sober mode applies the sampled palette broadly, with translucent side bar color.
@@ -1489,63 +1492,81 @@ function createColorCustomizations(choices) {
  * Creates the restrained default color map: mostly neutral chrome with only the
  * title bar, activity bar, and status bar carrying the identity colors.
  */
-function createSoberColorCustomizations(startColor, endColor, colorRelationship) {
+function createSoberColorCustomizations(startColor, endColor, colorRelationship, options = {}) {
   const neutral = "#1e1e1e";
-  const title = paletteColor(startColor, endColor, 0, colorRelationship);
-  const activity = paletteColor(startColor, endColor, surfaceSample("activityBar", 0.12), colorRelationship);
-  const status = paletteColor(startColor, endColor, 1, colorRelationship);
-  const neutralForeground = contrastColor(neutral);
+  const overrides = sanitizeSurfaceOverrides(options.surfaceOverrides);
+  const surfaceColor = (id, fallback) => overrides[id] || fallback;
+  const title = surfaceColor("titleBar", paletteColor(startColor, endColor, 0, colorRelationship));
+  const activity = surfaceColor("activityBar", paletteColor(startColor, endColor, surfaceSample("activityBar", 0.12), colorRelationship));
+  const side = surfaceColor("sideBar", neutral);
+  const panel = surfaceColor("panel", neutral);
+  const status = surfaceColor("statusBar", paletteColor(startColor, endColor, 1, colorRelationship));
+  const buttons = surfaceColor("buttons", neutral);
+  const editorAccent = surfaceColor("editorAccent", neutral);
+  const sideForeground = contrastColor(side);
+  const panelForeground = contrastColor(panel);
+  const buttonForeground = contrastColor(buttons);
   const mutedTitle = blendColor(neutral, title, 0.68);
   const mutedStatus = blendColor(neutral, status, 0.68);
 
-  return {
+  const colors = {
     "activityBar.background": activity,
     "activityBar.foreground": contrastColor(activity),
     "activityBar.inactiveForeground": withAlpha(contrastColor(activity), 0.68),
-    "activityBarBadge.background": neutral,
-    "activityBarBadge.foreground": neutralForeground,
-    "badge.background": neutral,
-    "badge.foreground": neutralForeground,
-    "button.background": neutral,
-    "button.foreground": neutralForeground,
-    "button.hoverBackground": adjustForHover(neutral),
-    "button.secondaryBackground": neutral,
-    "button.secondaryForeground": neutralForeground,
-    "button.secondaryHoverBackground": adjustForHover(neutral),
+    "activityBarBadge.background": buttons,
+    "activityBarBadge.foreground": buttonForeground,
+    "badge.background": buttons,
+    "badge.foreground": buttonForeground,
+    "button.background": buttons,
+    "button.foreground": buttonForeground,
+    "button.hoverBackground": adjustForHover(buttons),
+    "button.secondaryBackground": buttons,
+    "button.secondaryForeground": buttonForeground,
+    "button.secondaryHoverBackground": adjustForHover(buttons),
     "commandCenter.activeBackground": adjustForHover(title),
-    "commandCenter.activeBorder": neutral,
+    "commandCenter.activeBorder": panel,
     "commandCenter.activeForeground": contrastColor(adjustForHover(title)),
     "commandCenter.background": title,
-    "commandCenter.border": neutral,
-    "commandCenter.debuggingBackground": neutral,
+    "commandCenter.border": panel,
+    "commandCenter.debuggingBackground": panel,
     "commandCenter.foreground": contrastColor(title),
-    "commandCenter.inactiveBorder": neutral,
+    "commandCenter.inactiveBorder": panel,
     "commandCenter.inactiveForeground": withAlpha(contrastColor(mutedTitle), 0.74),
-    "editorGroup.border": neutral,
-    "focusBorder": neutral,
-    "list.activeSelectionBackground": withAlpha(neutral, 0.42),
-    "list.activeSelectionForeground": neutralForeground,
-    "list.hoverBackground": withAlpha(neutral, 0.22),
-    "list.inactiveSelectionBackground": withAlpha(neutral, 0.28),
-    "panel.border": neutral,
-    "panelTitle.activeBorder": neutral,
-    "sideBar.background": neutral,
-    "sideBar.foreground": neutralForeground,
-    "sideBarSectionHeader.background": neutral,
-    "sideBarSectionHeader.foreground": neutralForeground,
-    "sideBarTitle.foreground": neutralForeground,
+    "editorGroup.border": panel,
+    "focusBorder": panel,
+    "list.activeSelectionBackground": withAlpha(panel, 0.42),
+    "list.activeSelectionForeground": panelForeground,
+    "list.hoverBackground": withAlpha(panel, 0.22),
+    "list.inactiveSelectionBackground": withAlpha(panel, 0.28),
+    "panel.border": panel,
+    "panelTitle.activeBorder": panel,
+    "sideBar.background": side,
+    "sideBar.foreground": sideForeground,
+    "sideBarSectionHeader.background": panel,
+    "sideBarSectionHeader.foreground": sideForeground,
+    "sideBarTitle.foreground": sideForeground,
     "statusBar.background": status,
-    "statusBar.debuggingBackground": status,
+    "statusBar.debuggingBackground": panel,
     "statusBar.foreground": contrastColor(status),
     "statusBar.noFolderBackground": mutedStatus,
     "statusBarItem.hoverBackground": withAlpha(contrastColor(status), 0.16),
-    "tab.activeBorderTop": neutral,
+    "tab.activeBorderTop": panel,
     "terminalCursor.foreground": status,
     "titleBar.activeBackground": title,
     "titleBar.activeForeground": contrastColor(title),
     "titleBar.inactiveBackground": mutedTitle,
     "titleBar.inactiveForeground": withAlpha(contrastColor(mutedTitle), 0.74)
   };
+
+  if (options.includeEditorAccent && overrides.editorAccent) {
+    colors["editor.findMatchBackground"] = withAlpha(editorAccent, 0.52);
+    colors["editor.lineHighlightBackground"] = withAlpha(editorAccent, 0.18);
+    colors["editor.selectionBackground"] = withAlpha(editorAccent, 0.42);
+    colors["editorCursor.foreground"] = editorAccent;
+    colors["editorLink.activeForeground"] = editorAccent;
+  }
+
+  return colors;
 }
 
 /**
@@ -2169,6 +2190,19 @@ function getPickerHtml(webview, state) {
       min-height: 31px;
     }
 
+    .options-section {
+      display: grid;
+      gap: 8px;
+    }
+
+    .options-section-title {
+      color: var(--vscode-descriptionForeground);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
     .options-actions {
       display: grid;
       grid-template-columns: 1fr;
@@ -2178,16 +2212,6 @@ function getPickerHtml(webview, state) {
 
     .options-buttons {
       justify-content: start;
-    }
-
-    .save-favorite-row {
-      display: grid;
-    }
-
-    .save-favorite-row button {
-      width: 100%;
-      min-height: 38px;
-      font-weight: 600;
     }
 
     .status {
@@ -2297,33 +2321,39 @@ function getPickerHtml(webview, state) {
         </div>
 
         <div class="options-container">
-          <div class="options-grid">
-            <div class="field option-item option-wide">
-              <label for="intensity">Intensity <span id="intensityValue"></span></label>
-              <input id="intensity" type="range" min="0" max="100" step="1">
+          <div class="options-section">
+            <div class="options-section-title">Color behavior</div>
+            <div class="options-grid">
+              <div class="field option-item option-wide">
+                <label for="intensity">Intensity <span id="intensityValue"></span></label>
+                <input id="intensity" type="range" min="0" max="100" step="1">
+              </div>
+
+              <div class="option-item option-checkbox-group">
+                <label class="checkbox-row option-toggle">
+                  <input id="monochromatic" type="checkbox">
+                  <span>Monochromatic</span>
+                </label>
+
+                <label class="checkbox-row option-toggle">
+                  <input id="includeEditorAccent" type="checkbox">
+                  <span>Tint editor selection/cursor</span>
+                </label>
+              </div>
+
+              <div class="field option-item">
+                <label for="panelHarmony">Colour relationship</label>
+                <select id="panelHarmony">
+                  <option value="manual">Manual</option>
+                  <option value="analogous">Analogous</option>
+                  <option value="complementary">Complementary</option>
+                </select>
+              </div>
             </div>
+          </div>
 
-            <div class="option-item option-checkbox-group">
-              <label class="checkbox-row option-toggle">
-                <input id="monochromatic" type="checkbox">
-                <span>Monochromatic</span>
-              </label>
-
-              <label class="checkbox-row option-toggle">
-                <input id="includeEditorAccent" type="checkbox">
-                <span>Tint editor selection/cursor</span>
-              </label>
-            </div>
-
-            <div class="field option-item">
-              <label for="panelHarmony">Colour relationship</label>
-              <select id="panelHarmony">
-                <option value="manual">Manual</option>
-                <option value="analogous">Analogous</option>
-                <option value="complementary">Complementary</option>
-              </select>
-            </div>
-
+          <div class="options-section">
+            <div class="options-section-title">Target</div>
             <div class="field option-item">
               <label for="applyTo">Apply to</label>
               <select id="applyTo">
@@ -2333,20 +2363,21 @@ function getPickerHtml(webview, state) {
             </div>
           </div>
 
-          <div class="options-actions">
+          <div class="options-section">
+            <div class="options-section-title">Presets</div>
             <div class="favorite-row">
               <select id="favorites" aria-label="Favourite color sets"></select>
               <button id="deleteFavorite" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#10005;</span><span>Delete</span></button>
             </div>
+          </div>
 
+          <div class="options-section options-actions">
+            <div class="options-section-title">Actions</div>
             <div class="button-row compact options-buttons">
               <button id="clear" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#8634;</span><span>Restore previous</span></button>
               <button id="resetDefault" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#8635;</span><span>Reset IDE defaults</span></button>
+              <button id="saveFavorite" class="secondary" type="button">${saveFavoriteIconHtml}<span>Save as favourite...</span></button>
             </div>
-          </div>
-
-          <div class="save-favorite-row">
-            <button id="saveFavorite" class="primary-action" type="button">${saveFavoriteIconHtml}<span>Save as favourite...</span></button>
           </div>
         </div>
       </section>
@@ -2901,6 +2932,11 @@ function getPickerHtml(webview, state) {
         }
 
         const hasCustomOverride = !ignoreCustom && overrides[surface.id];
+
+        if (hasCustomOverride) {
+          colors[surface.id] = overrides[surface.id];
+          continue;
+        }
 
         const generated = monochromatic
           ? harmonyColor(start, surface.sample, harmonyMode)
