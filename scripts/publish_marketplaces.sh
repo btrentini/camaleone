@@ -18,8 +18,8 @@ Options:
   -h, --help                  Show this help.
 
 Environment:
-  VSCE_PAT                    Microsoft Marketplace token for the package.json publisher.
-  OVSX_PAT                    Open VSX token for the package.json publisher namespace.
+  VSCE_PAT                    Optional Microsoft Marketplace token. Prompted if missing.
+  OVSX_PAT                    Optional Open VSX token. Prompted if missing.
 
 Examples:
   VSCE_PAT=... OVSX_PAT=... scripts/publish_marketplaces.sh --version patch
@@ -35,6 +35,33 @@ fail() {
   printf '[camaleone-publish] ERROR: %s\n' "$*" >&2
   exit 1
 }
+
+cleanup_tokens() {
+  unset VSCE_PAT
+  unset OVSX_PAT
+}
+
+prompt_secret() {
+  local variable_name="$1"
+  local prompt_text="$2"
+  local secret_value=""
+
+  if [[ -n "${!variable_name:-}" ]]; then
+    return
+  fi
+
+  printf '%s' "$prompt_text" >&2
+  IFS= read -r -s secret_value
+  printf '\n' >&2
+
+  if [[ -z "$secret_value" ]]; then
+    fail "$variable_name is required"
+  fi
+
+  export "$variable_name=$secret_value"
+}
+
+trap cleanup_tokens EXIT
 
 version_arg="current"
 publish_vscode=1
@@ -87,12 +114,12 @@ command -v node >/dev/null 2>&1 || fail "node is required"
 command -v npm >/dev/null 2>&1 || fail "npm is required"
 command -v vsce >/dev/null 2>&1 || fail "vsce is required; install with: npm install -g @vscode/vsce"
 
-if [[ "$publish_vscode" -eq 1 && "$dry_run" -eq 0 && -z "${VSCE_PAT:-}" ]]; then
-  fail "VSCE_PAT is required to publish to the VS Code Marketplace"
+if [[ "$publish_vscode" -eq 1 && "$dry_run" -eq 0 ]]; then
+  prompt_secret "VSCE_PAT" "VS Code Marketplace access token: "
 fi
 
-if [[ "$publish_openvsx" -eq 1 && "$dry_run" -eq 0 && -z "${OVSX_PAT:-}" ]]; then
-  fail "OVSX_PAT is required to publish to Open VSX/Cursor"
+if [[ "$publish_openvsx" -eq 1 && "$dry_run" -eq 0 ]]; then
+  prompt_secret "OVSX_PAT" "Open VSX/Cursor access token: "
 fi
 
 if [[ -n "$(git status --short)" ]]; then
