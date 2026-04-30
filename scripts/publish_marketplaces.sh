@@ -18,12 +18,13 @@ Options:
   -h, --help                  Show this help.
 
 Environment:
-  VSCE_PAT                    Optional Microsoft Marketplace token. Prompted if missing.
-  OVSX_PAT                    Optional Open VSX token. Prompted if missing.
+  No token environment variables are required. The script runs each marketplace
+  login command, lets the CLI prompt for the access token, publishes, then logs
+  out and removes the temporary credential store.
 
 Examples:
-  VSCE_PAT=... OVSX_PAT=... scripts/publish_marketplaces.sh --version patch
-  OVSX_PAT=... scripts/publish_marketplaces.sh --skip-vscode --version current
+  scripts/publish_marketplaces.sh --version patch
+  scripts/publish_marketplaces.sh --skip-vscode --version current
 USAGE
 }
 
@@ -36,32 +37,66 @@ fail() {
   exit 1
 }
 
-cleanup_tokens() {
+vsce_temp_home=""
+ovsx_temp_home=""
+
+cleanup_credentials() {
+  local status=$?
+
   unset VSCE_PAT
   unset OVSX_PAT
-}
 
-prompt_secret() {
-  local variable_name="$1"
-  local prompt_text="$2"
-  local secret_value=""
-
-  if [[ -n "${!variable_name:-}" ]]; then
-    return
+  if [[ -n "$vsce_temp_home" && -d "$vsce_temp_home" ]]; then
+    if [[ -n "${publisher:-}" ]]; then
+      HOME="$vsce_temp_home" VSCE_STORE=file vsce logout "$publisher" >/dev/null 2>&1 || true
+    fi
+    rm -rf "$vsce_temp_home"
   fi
 
-  printf '%s' "$prompt_text" >&2
-  IFS= read -r -s secret_value
-  printf '\n' >&2
-
-  if [[ -z "$secret_value" ]]; then
-    fail "$variable_name is required"
+  if [[ -n "$ovsx_temp_home" && -d "$ovsx_temp_home" ]]; then
+    if [[ -n "${publisher:-}" ]]; then
+      HOME="$ovsx_temp_home" OVSX_STORE=file npx --yes ovsx logout "$publisher" >/dev/null 2>&1 || true
+    fi
+    rm -rf "$ovsx_temp_home"
   fi
 
-  export "$variable_name=$secret_value"
+  return "$status"
 }
 
-trap cleanup_tokens EXIT
+make_temp_home() {
+  local name="$1"
+  local temp_home
+
+  temp_home="$(mktemp -d "${TMPDIR:-/tmp}/camaleone-${name}.XXXXXX")"
+  chmod 700 "$temp_home"
+  printf '%s\n' "$temp_home"
+}
+
+run_vsce() {
+  HOME="$vsce_temp_home" VSCE_STORE=file vsce "$@"
+}
+
+run_ovsx() {
+  HOME="$ovsx_temp_home" OVSX_STORE=file npx --yes ovsx "$@"
+}
+
+logout_vsce() {
+  if [[ -n "$vsce_temp_home" && -d "$vsce_temp_home" ]]; then
+    run_vsce logout "$publisher" >/dev/null 2>&1 || true
+    rm -rf "$vsce_temp_home"
+    vsce_temp_home=""
+  fi
+}
+
+logout_ovsx() {
+  if [[ -n "$ovsx_temp_home" && -d "$ovsx_temp_home" ]]; then
+    run_ovsx logout "$publisher" >/dev/null 2>&1 || true
+    rm -rf "$ovsx_temp_home"
+    ovsx_temp_home=""
+  fi
+}
+
+trap cleanup_credentials EXIT
 
 version_arg="current"
 publish_vscode=1
@@ -114,14 +149,6 @@ command -v node >/dev/null 2>&1 || fail "node is required"
 command -v npm >/dev/null 2>&1 || fail "npm is required"
 command -v vsce >/dev/null 2>&1 || fail "vsce is required; install with: npm install -g @vscode/vsce"
 
-if [[ "$publish_vscode" -eq 1 && "$dry_run" -eq 0 ]]; then
-  prompt_secret "VSCE_PAT" "VS Code Marketplace access token: "
-fi
-
-if [[ "$publish_openvsx" -eq 1 && "$dry_run" -eq 0 ]]; then
-  prompt_secret "OVSX_PAT" "Open VSX/Cursor access token: "
-fi
-
 if [[ -n "$(git status --short)" ]]; then
   fail "working tree is not clean; commit or stash changes before publishing"
 fi
@@ -149,18 +176,34 @@ if [[ "$dry_run" -eq 1 ]]; then
 fi
 
 if [[ "$publish_vscode" -eq 1 ]]; then
-  log "Publishing to VS Code Marketplace as $publisher.$name"
-  vsce publish --no-dependencies --packagePath "$vsix_path"
+  vsce_temp_home="$(make_temp_home vsce)"
+  log "VS Code step 1/3: run 'vsce login $publisher'"
+  log "Enter the VS Code Marketplace access token at the prompt. It is stored only under a temporary HOME and removed before exit."
+  run_vsce login "$publisher"
+
+  log "VS Code step 2/3: run 'vsce publish --packagePath $vsix_path'"
+  run_vsce publish --no-dependencies --packagePath "$vsix_path"
+
+  log "VS Code step 3/3: run 'vsce logout $publisher' and remove temporary credentials"
+  logout_vsce
 fi
 
 if [[ "$publish_openvsx" -eq 1 ]]; then
+  ovsx_temp_home="$(make_temp_home ovsx)"
+  log "Open VSX step 1/3: run 'ovsx login $publisher'"
+  log "Enter the Open VSX/Cursor access token at the prompt. It is stored only under a temporary HOME and removed before exit."
+  run_ovsx login "$publisher"
+
   if [[ "$ensure_openvsx_namespace" -eq 1 ]]; then
-    log "Ensuring Open VSX namespace $publisher exists"
-    npx --yes ovsx create-namespace "$publisher" || true
+    log "Open VSX optional step: run 'ovsx create-namespace $publisher'"
+    run_ovsx create-namespace "$publisher" || true
   fi
 
-  log "Publishing to Open VSX/Cursor as $publisher.$name"
-  npx --yes ovsx publish "$vsix_path"
+  log "Open VSX step 2/3: run 'ovsx publish $vsix_path'"
+  run_ovsx publish "$vsix_path"
+
+  log "Open VSX step 3/3: run 'ovsx logout $publisher' and remove temporary credentials"
+  logout_ovsx
 fi
 
 log "Published $publisher.$name v$version"

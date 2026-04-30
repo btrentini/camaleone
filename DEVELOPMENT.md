@@ -27,7 +27,7 @@ To publish to both the VS Code Marketplace and Cursor's Open VSX-backed marketpl
 npm run publish:marketplaces -- --version patch
 ```
 
-The script prompts for any missing access tokens without echoing them, keeps them only for the current process, unsets them on exit, runs tests, packages one VSIX, publishes it to the Microsoft VS Code Marketplace with `vsce`, then publishes the same VSIX to Open VSX for Cursor. You can also pre-set `VSCE_PAT` and `OVSX_PAT` as environment variables if needed. Use `--dry-run` to validate and build without publishing:
+The script runs the marketplace commands step by step: it validates and packages the extension, runs `vsce login`, lets you enter the VS Code Marketplace token, runs `vsce publish`, runs `vsce logout`, then repeats the same login, publish, and logout flow with `ovsx` for Cursor/Open VSX. Login credentials are written only to temporary credential stores created by the script and those stores are deleted before the script exits. Use `--dry-run` to validate and build without publishing:
 
 ```sh
 npm run publish:marketplaces -- --version current --dry-run
