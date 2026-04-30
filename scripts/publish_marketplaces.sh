@@ -9,8 +9,9 @@ Usage:
   scripts/publish_marketplaces.sh [--version current|patch|minor|major|x.y.z] [options]
 
 Options:
-  --version <value>           Version to publish. Defaults to current package.json version.
-                              Use patch/minor/major or an explicit semver to update package.json first.
+  --version <value>           Version to publish. Real publishes default to patch because marketplaces
+                              require a new semver for each update. Dry runs default to current.
+                              Use current, patch, minor, major, or an explicit semver.
   --skip-vscode               Do not publish to the Microsoft VS Code Marketplace.
   --skip-openvsx              Do not publish to Open VSX, which is used by Cursor's marketplace.
   --ensure-openvsx-namespace  Try to create the Open VSX namespace before publishing.
@@ -23,8 +24,9 @@ Environment:
   out and removes the temporary credential store.
 
 Examples:
-  scripts/publish_marketplaces.sh --version patch
-  scripts/publish_marketplaces.sh --skip-vscode --version current
+  scripts/publish_marketplaces.sh
+  scripts/publish_marketplaces.sh --skip-vscode --version patch
+  scripts/publish_marketplaces.sh --version current --dry-run
 USAGE
 }
 
@@ -98,7 +100,7 @@ logout_ovsx() {
 
 trap cleanup_credentials EXIT
 
-version_arg="current"
+version_arg=""
 publish_vscode=1
 publish_openvsx=1
 ensure_openvsx_namespace=0
@@ -141,6 +143,14 @@ if [[ "$publish_vscode" -eq 0 && "$publish_openvsx" -eq 0 ]]; then
   fail "both marketplaces are disabled"
 fi
 
+if [[ -z "$version_arg" ]]; then
+  if [[ "$dry_run" -eq 1 ]]; then
+    version_arg="current"
+  else
+    version_arg="patch"
+  fi
+fi
+
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "$script_dir/.." && pwd)"
 cd "$repo_root"
@@ -155,6 +165,14 @@ fi
 
 publisher="$(node -p "require('./package.json').publisher")"
 name="$(node -p "require('./package.json').name")"
+
+if [[ "$dry_run" -eq 1 && "$version_arg" == "current" ]]; then
+  log "Dry run will package the current package version without changing package.json."
+elif [[ "$version_arg" == "current" ]]; then
+  log "Publishing the current package version. If that version already exists, rerun with --version patch."
+else
+  log "Marketplace updates require a new package version; this run will publish version mode '$version_arg'."
+fi
 
 if [[ "$version_arg" != "current" ]]; then
   log "Updating package version with npm version $version_arg"
