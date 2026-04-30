@@ -70,7 +70,7 @@ const SURFACE_CONFIGS = [
   {
     id: "activityBar",
     label: "Activity Bar",
-    sample: 0.18,
+    sample: 0.12,
     strength: 1,
     description: "Left icon rail for Explorer, Search, Source Control, and extensions."
   },
@@ -84,7 +84,7 @@ const SURFACE_CONFIGS = [
   {
     id: "panel",
     label: "Panel and Borders",
-    sample: 0.62,
+    sample: 0.34,
     strength: 0.9,
     description: "Panel lines, active tab accents, focus rings, and selections."
   },
@@ -118,8 +118,9 @@ const DEFAULT_CHOICES = {
   applyTo: "workspace",
   includeEditorAccent: false,
   monochromatic: false,
+  sober: false,
   colorRelationship: "manual",
-  panelHarmony: "analogous",
+  panelHarmony: "manual",
   surfaceOverrides: {}
 };
 
@@ -134,8 +135,9 @@ function createIdeDefaultChoices(options = {}) {
     applyTo: options.applyTo === "global" ? "global" : DEFAULT_CHOICES.applyTo,
     includeEditorAccent: false,
     monochromatic: false,
+    sober: false,
     colorRelationship: "manual",
-    panelHarmony: "analogous",
+    panelHarmony: "manual",
     surfaceOverrides: {}
   };
 }
@@ -307,6 +309,7 @@ async function surpriseMeCommand(context) {
     startColor: palette.startColor,
     endColor: palette.endColor,
     monochromatic: false,
+    sober: false,
     colorRelationship: palette.relationship,
     panelHarmony: palette.relationship,
     surfaceOverrides: {}
@@ -486,6 +489,9 @@ function getCurrentChoices(context) {
     monochromatic:
       remembered.monochromatic
       ?? getConfiguredValue(config, "monochromatic", DEFAULT_CHOICES.monochromatic),
+    sober:
+      remembered.sober
+      ?? getConfiguredValue(config, "sober", DEFAULT_CHOICES.sober),
     panelHarmony:
       remembered.panelHarmony
       || getConfiguredValue(config, "panelHarmony", DEFAULT_CHOICES.panelHarmony),
@@ -537,14 +543,22 @@ function sanitizeChoices(options) {
     applyTo,
     includeEditorAccent: Boolean(options && options.includeEditorAccent),
     monochromatic: Boolean(options && options.monochromatic),
+    sober: Boolean(options && options.sober),
     colorRelationship: sanitizeColorRelationship(options && options.colorRelationship),
-    panelHarmony: options && options.panelHarmony === "complementary" ? "complementary" : "analogous",
+    panelHarmony: sanitizePanelHarmony(options && options.panelHarmony),
     surfaceOverrides: sanitizeSurfaceOverrides(options && options.surfaceOverrides)
   };
 }
 
 function sanitizeColorRelationship(value) {
   return value === "analogous" || value === "complementary" ? value : "manual";
+}
+
+function sanitizePanelHarmony(value) {
+  if (value === "manual" || value === "analogous" || value === "complementary") {
+    return value;
+  }
+  return DEFAULT_CHOICES.panelHarmony;
 }
 
 function sanitizeSurfaceOverrides(overrides) {
@@ -612,6 +626,7 @@ async function saveExtensionSettings(context, choices, target) {
   await config.update(`${EXTENSION_PREFIX}.applyTo`, target.id, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.includeEditorAccent`, choices.includeEditorAccent, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.monochromatic`, choices.monochromatic, target.configurationTarget);
+  await config.update(`${EXTENSION_PREFIX}.sober`, choices.sober, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.colorRelationship`, choices.colorRelationship, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.panelHarmony`, choices.panelHarmony, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.surfaceOverrides`, choices.surfaceOverrides, target.configurationTarget);
@@ -1069,9 +1084,16 @@ function createColorCustomizations(choices) {
     if (!config) {
       return sample(0.5);
     }
+    if (id === "sideBar" && !overrides[id]) {
+      return "#1e1e1e";
+    }
     const source = overrides[id] || generatedSurfaceColor(config.sample);
     return blendColor(base, source, blendAmount(config.strength));
   };
+
+  if (choices.sober) {
+    return createSoberColorCustomizations(startColor, endColor, colorRelationship);
+  }
 
   const title = surface("titleBar");
   const activity = surface("activityBar");
@@ -1145,6 +1167,70 @@ function createColorCustomizations(choices) {
   }
 
   return colors;
+}
+
+function createSoberColorCustomizations(startColor, endColor, colorRelationship) {
+  const neutral = "#1e1e1e";
+  const title = paletteColor(startColor, endColor, 0, colorRelationship);
+  const activity = paletteColor(startColor, endColor, surfaceSample("activityBar", 0.12), colorRelationship);
+  const status = paletteColor(startColor, endColor, 1, colorRelationship);
+  const neutralForeground = contrastColor(neutral);
+  const mutedTitle = blendColor(neutral, title, 0.68);
+  const mutedStatus = blendColor(neutral, status, 0.68);
+
+  return {
+    "activityBar.background": activity,
+    "activityBar.foreground": contrastColor(activity),
+    "activityBar.inactiveForeground": withAlpha(contrastColor(activity), 0.68),
+    "activityBarBadge.background": neutral,
+    "activityBarBadge.foreground": neutralForeground,
+    "badge.background": neutral,
+    "badge.foreground": neutralForeground,
+    "button.background": neutral,
+    "button.foreground": neutralForeground,
+    "button.hoverBackground": adjustForHover(neutral),
+    "button.secondaryBackground": neutral,
+    "button.secondaryForeground": neutralForeground,
+    "button.secondaryHoverBackground": adjustForHover(neutral),
+    "commandCenter.activeBackground": adjustForHover(title),
+    "commandCenter.activeBorder": neutral,
+    "commandCenter.activeForeground": contrastColor(adjustForHover(title)),
+    "commandCenter.background": title,
+    "commandCenter.border": neutral,
+    "commandCenter.debuggingBackground": neutral,
+    "commandCenter.foreground": contrastColor(title),
+    "commandCenter.inactiveBorder": neutral,
+    "commandCenter.inactiveForeground": withAlpha(contrastColor(mutedTitle), 0.74),
+    "editorGroup.border": neutral,
+    "focusBorder": neutral,
+    "list.activeSelectionBackground": withAlpha(neutral, 0.42),
+    "list.activeSelectionForeground": neutralForeground,
+    "list.hoverBackground": withAlpha(neutral, 0.22),
+    "list.inactiveSelectionBackground": withAlpha(neutral, 0.28),
+    "panel.border": neutral,
+    "panelTitle.activeBorder": neutral,
+    "sideBar.background": neutral,
+    "sideBar.foreground": neutralForeground,
+    "sideBarSectionHeader.background": neutral,
+    "sideBarSectionHeader.foreground": neutralForeground,
+    "sideBarTitle.foreground": neutralForeground,
+    "statusBar.background": status,
+    "statusBar.debuggingBackground": status,
+    "statusBar.foreground": contrastColor(status),
+    "statusBar.noFolderBackground": mutedStatus,
+    "statusBarItem.hoverBackground": withAlpha(contrastColor(status), 0.16),
+    "tab.activeBorderTop": neutral,
+    "terminalCursor.foreground": status,
+    "titleBar.activeBackground": title,
+    "titleBar.activeForeground": contrastColor(title),
+    "titleBar.inactiveBackground": mutedTitle,
+    "titleBar.inactiveForeground": withAlpha(contrastColor(mutedTitle), 0.74)
+  };
+}
+
+function surfaceSample(id, fallback) {
+  const config = SURFACE_CONFIGS.find((entry) => entry.id === id);
+  return config ? config.sample : fallback;
 }
 
 function baseColorForTheme() {
@@ -1785,6 +1871,11 @@ function getPickerHtml(webview, state) {
             </div>
           </div>
 
+          <label class="checkbox-row">
+            <input id="sober" type="checkbox">
+            <span>Sober</span>
+          </label>
+
           <div class="button-row">
             <button id="surprise" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#10022;</span><span>Surprise me</span></button>
             <button id="apply" class="primary-action" type="button"><span class="button-icon" aria-hidden="true">&#10003;</span><span>Apply colors</span></button>
@@ -1881,6 +1972,7 @@ function getPickerHtml(webview, state) {
       applyTo: document.getElementById("applyTo"),
       includeEditorAccent: document.getElementById("includeEditorAccent"),
       monochromatic: document.getElementById("monochromatic"),
+      sober: document.getElementById("sober"),
       panelHarmony: document.getElementById("panelHarmony"),
       surfaceControls: document.getElementById("surfaceControls"),
       surfacePreview: document.getElementById("surfacePreview"),
@@ -1924,6 +2016,7 @@ function getPickerHtml(webview, state) {
       elements.intensity.addEventListener("change", () => updatePreviewAndApply(0));
       elements.applyTo.addEventListener("change", () => updatePreviewAndApply(0));
       elements.includeEditorAccent.addEventListener("change", () => updatePreviewAndApply(0));
+      elements.sober.addEventListener("change", () => updatePreviewAndApply(0));
       elements.monochromatic.addEventListener("change", () => {
         if (elements.monochromatic.checked && elements.panelHarmony.value === "manual") {
           elements.panelHarmony.value = "analogous";
@@ -2077,6 +2170,7 @@ function getPickerHtml(webview, state) {
       elements.applyTo.value = state.hasWorkspace ? (next.applyTo || state.defaultChoices.applyTo) : "global";
       elements.includeEditorAccent.checked = Boolean(next.includeEditorAccent);
       elements.monochromatic.checked = Boolean(next.monochromatic);
+      elements.sober.checked = Boolean(next.sober);
       elements.panelHarmony.value = getRelationshipValue(next);
       if (elements.monochromatic.checked && elements.panelHarmony.value === "manual") {
         elements.panelHarmony.value = "analogous";
@@ -2139,6 +2233,7 @@ function getPickerHtml(webview, state) {
         applyTo: elements.applyTo.value,
         includeEditorAccent: elements.includeEditorAccent.checked,
         monochromatic: elements.monochromatic.checked,
+        sober: elements.sober.checked,
         colorRelationship: elements.panelHarmony.value,
         panelHarmony: selectedHarmonyRelationship(),
         surfaceOverrides: collectSurfaceOverrides()
@@ -2274,14 +2369,38 @@ function getPickerHtml(webview, state) {
       const base = state.baseColor || "#1e1e1e";
       const overrides = overrideInput || collectSurfaceOverrides();
       const monochromatic = elements.monochromatic.checked;
+      const sober = elements.sober.checked;
       const harmonyMode = selectedHarmonyRelationship();
       const colors = {};
 
       for (const surface of surfaces) {
+        if (sober) {
+          if (surface.id === "titleBar") {
+            colors[surface.id] = paletteColor(start, end, 0, elements.panelHarmony.value);
+            continue;
+          }
+          if (surface.id === "activityBar") {
+            colors[surface.id] = paletteColor(start, end, surface.sample, elements.panelHarmony.value);
+            continue;
+          }
+          if (surface.id === "statusBar") {
+            colors[surface.id] = paletteColor(start, end, 1, elements.panelHarmony.value);
+            continue;
+          }
+          colors[surface.id] = "#1e1e1e";
+          continue;
+        }
+
+        const hasCustomOverride = !ignoreCustom && overrides[surface.id];
+        if (surface.id === "sideBar" && !hasCustomOverride) {
+          colors[surface.id] = "#1e1e1e";
+          continue;
+        }
+
         const generated = monochromatic
           ? harmonyColor(start, surface.sample, harmonyMode)
           : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
-        const source = !ignoreCustom && overrides[surface.id] ? overrides[surface.id] : generated;
+        const source = hasCustomOverride ? overrides[surface.id] : generated;
         colors[surface.id] = mix(base, source, Math.max(0, Math.min(1, intensity * surface.strength)));
       }
 
@@ -2293,7 +2412,7 @@ function getPickerHtml(webview, state) {
       const end = normalizeHex(elements.endText.value) || elements.endColor.value;
       const colors = getGeneratedSurfaceColors();
       document.body.style.setProperty("--start", start);
-      document.body.style.setProperty("--end", elements.monochromatic.checked ? harmonyColor(start, 1, selectedHarmonyRelationship()) : end);
+      document.body.style.setProperty("--end", !elements.sober.checked && elements.monochromatic.checked ? harmonyColor(start, 1, selectedHarmonyRelationship()) : end);
       elements.intensityValue.textContent = elements.intensity.value + "%";
 
       for (const surface of surfaces) {
@@ -2381,6 +2500,7 @@ function getPickerHtml(webview, state) {
       elements.startText.value = start;
       elements.endColor.value = end;
       elements.endText.value = end;
+      elements.sober.checked = false;
       elements.monochromatic.checked = false;
       elements.panelHarmony.value = complementary ? "complementary" : "analogous";
       clearSurfaceOverrides();

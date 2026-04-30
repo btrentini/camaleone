@@ -42,6 +42,7 @@ Warnings such as `DEP0040` for `punycode` or `ExperimentalWarning: SQLite is an 
 - `camaleone.intensity`
 - `camaleone.applyTo`
 - `camaleone.includeEditorAccent`
+- `camaleone.sober`
 - `camaleone.colorRelationship`
 - `camaleone.surfaceOverrides`
 - `camaleone.persistChoices`
@@ -50,6 +51,8 @@ Warnings such as `DEP0040` for `punycode` or `ExperimentalWarning: SQLite is an 
 
 - Workspace mode writes generated `workbench.colorCustomizations` to `.vscode/settings.json`.
 - Global mode writes generated `workbench.colorCustomizations` to your user settings.
+- Manual is the default colour relationship, with a tighter title/activity/panel ramp before the end color reaches the status bar.
+- The side bar stays at `#1e1e1e` unless you customize the Side Bar surface directly; `Surprise Me` keeps that neutral side bar.
 - The extension does not use CUDA, Metal, WebGPU, or any GPU runtime. By default, applying a gradient only persists the generated workbench colors; set `camaleone.persistChoices` to `true` if you also want the chosen gradient values written into settings.
 - Clearing restores color values that existed before this extension first applied its generated colors for that target. If you manually edit one of those same color keys after applying, clearing leaves your manual edit in place.
 - Reset to default removes Camaleone-managed color customizations from workspace and user settings so the IDE falls back to the active light or dark theme. The removed Camaleone colors stay available through `Restore Previous`.

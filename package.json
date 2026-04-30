@@ -13,16 +13,6 @@
     "Themes",
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:camaleone.openPicker",
-    "onCommand:camaleone.quickApply",
-    "onCommand:camaleone.applyConfigured",
-    "onCommand:camaleone.clear",
-    "onCommand:camaleone.resetToDefault",
-    "onCommand:camaleone.surpriseMe",
-    "onCommand:camaleone.saveFavorite",
-    "onCommand:camaleone.applyFavorite"
-  ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
@@ -112,6 +102,11 @@
           "default": false,
           "description": "Use the start color as the base and derive panel colors from a harmony rule."
         },
+        "camaleone.sober": {
+          "type": "boolean",
+          "default": false,
+          "description": "Keep most managed workbench surfaces at #1e1e1e while tinting only the title bar, activity bar, and status bar."
+        },
         "camaleone.colorRelationship": {
           "type": "string",
           "default": "manual",
@@ -124,8 +119,9 @@
         },
         "camaleone.panelHarmony": {
           "type": "string",
-          "default": "analogous",
+          "default": "manual",
           "enum": [
+            "manual",
             "analogous",
             "complementary"
           ],

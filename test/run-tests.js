@@ -179,6 +179,18 @@ test("sanitizes invalid choices and preserves defaults", () => {
   assert.deepEqual(choices.surfaceOverrides, { titleBar: "#ff00ff" });
 });
 
+test("defaults use manual relationship with compact title activity and panel samples", () => {
+  assert.equal(testApi.DEFAULT_CHOICES.colorRelationship, "manual");
+  assert.equal(testApi.DEFAULT_CHOICES.panelHarmony, "manual");
+
+  const samples = Object.fromEntries(testApi.SURFACE_CONFIGS.map((surface) => [surface.id, surface.sample]));
+  assert.equal(samples.titleBar, 0);
+  assert.equal(samples.activityBar, 0.12);
+  assert.equal(samples.panel, 0.34);
+  assert.ok(samples.activityBar - samples.titleBar < samples.panel - samples.activityBar);
+  assert.ok(samples.panel < 0.5);
+});
+
 test("intensity affects custom surface overrides", () => {
   resetState();
   vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
@@ -261,6 +273,49 @@ test("button text contrasts with selected button and side bar colors", () => {
   assert.equal(lightButtons["activityBarBadge.foreground"], "#000000");
 });
 
+test("side bar stays neutral unless it is customized", () => {
+  resetState();
+  vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
+
+  const generated = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#3366cc",
+    endColor: "#cc6633",
+    intensity: 100
+  });
+
+  assert.equal(generated["sideBar.background"], "#1e1e1e");
+  assert.equal(generated["button.secondaryBackground"], "#1e1e1e");
+
+  const customized = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#3366cc",
+    endColor: "#cc6633",
+    intensity: 100,
+    surfaceOverrides: {
+      sideBar: "#ffffff"
+    }
+  });
+
+  assert.notEqual(customized["sideBar.background"], "#1e1e1e");
+  assert.equal(customized["button.secondaryBackground"], customized["sideBar.background"]);
+});
+
+test("surprise palettes keep the side bar neutral", () => {
+  resetState();
+  const palette = testApi.createSurprisePalette();
+  const colors = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: palette.startColor,
+    endColor: palette.endColor,
+    colorRelationship: palette.relationship,
+    panelHarmony: palette.relationship,
+    surfaceOverrides: {}
+  });
+
+  assert.equal(colors["sideBar.background"], "#1e1e1e");
+});
+
 test("monochromatic mode uses harmony colors instead of a straight gradient", () => {
   resetState();
   const gradient = testApi.createColorCustomizations({
@@ -303,6 +358,33 @@ test("color relationship changes the palette path without replacing selected col
   assert.equal(manual["titleBar.activeBackground"], "#3366cc");
   assert.equal(manual["statusBar.background"], "#cc6633");
   assert.notEqual(complementary["panel.border"], manual["panel.border"]);
+});
+
+test("sober mode neutralizes managed surfaces except title activity and status", () => {
+  resetState();
+  const sober = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#112233",
+    endColor: "#445566",
+    intensity: 25,
+    includeEditorAccent: true,
+    monochromatic: true,
+    sober: true,
+    surfaceOverrides: {
+      sideBar: "#ffffff",
+      panel: "#ffffff",
+      buttons: "#ffffff"
+    }
+  });
+
+  assert.equal(sober["titleBar.activeBackground"], "#112233");
+  assert.equal(sober["activityBar.background"], "#172839");
+  assert.equal(sober["statusBar.background"], "#445566");
+  assert.equal(sober["sideBar.background"], "#1e1e1e");
+  assert.equal(sober["panel.border"], "#1e1e1e");
+  assert.equal(sober["button.background"], "#1e1e1e");
+  assert.equal(sober["tab.activeBorderTop"], "#1e1e1e");
+  assert.equal(sober["editor.selectionBackground"], undefined);
 });
 
 test("IDE default picker state uses equal active-theme colors", () => {
@@ -513,6 +595,7 @@ test("picker html contains the simplified workflow controls", () => {
   for (const text of [
     "Apply colors",
     "Surprise me",
+    "Sober",
     "Customize",
     "Save as favourite...",
     "Options",
@@ -565,6 +648,7 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes('elements.intensity.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.applyTo.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.includeEditorAccent.addEventListener("change", () => updatePreviewAndApply(0));'));
+  assert.ok(html.includes('elements.sober.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.panelHarmony.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes("function scheduleApply(delay)"));
   assert.equal(html.includes("syncEndFromRelationship"), false);
@@ -578,10 +662,12 @@ test("picker html contains the simplified workflow controls", () => {
   const resetIndex = html.indexOf('id="resetDefault"');
   const optionsIndex = html.indexOf('<section class="extras"');
   const colorsIndex = html.indexOf('<section class="controls" aria-label="Color picker">');
+  const soberIndex = html.indexOf('id="sober"');
   const paletteIndex = html.indexOf('<section class="preview" aria-label="Color palette preview">');
   const customizePanelIndex = html.indexOf('<section class="customize" aria-label="Customize colors">');
   assert.ok(customizeIndex >= 0 && customizeIndex < optionsIndex);
   assert.ok(colorsIndex >= 0);
+  assert.ok(soberIndex > colorsIndex && soberIndex < paletteIndex);
   assert.ok(paletteIndex > colorsIndex);
   assert.ok(customizePanelIndex > paletteIndex);
   assert.ok(optionsIndex > customizePanelIndex);
@@ -634,6 +720,7 @@ test("debug configuration isolates the extension without suppressing warnings", 
   assert.ok(args.includes("--user-data-dir=${workspaceFolder}/.vscode-test/user-data"));
   assert.ok(args.includes("--extensions-dir=${workspaceFolder}/.vscode-test/extensions"));
   assert.ok(args.includes("--extensionDevelopmentPath=${workspaceFolder}"));
+  assert.ok(args.includes("${workspaceFolder}/test/workspace"));
   assert.equal(args.includes("--disable-extensions"), false);
   assert.equal(JSON.stringify(launch).includes("NODE_NO_WARNINGS"), false);
   assert.equal(JSON.stringify(launch).includes("--no-warnings"), false);
