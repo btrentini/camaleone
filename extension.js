@@ -1905,7 +1905,8 @@ function getPickerHtml(webview, state) {
     .controls,
     .preview,
     .customize,
-    .extras {
+    .extras,
+    .actions {
       border: 1px solid var(--vscode-panel-border);
       border-radius: 8px;
       background: var(--vscode-sideBar-background);
@@ -2168,7 +2169,8 @@ function getPickerHtml(webview, state) {
     }
 
     .customize-head,
-    .extras-head {
+    .extras-head,
+    .actions-head {
       display: grid;
       grid-template-columns: 1fr;
       align-items: center;
@@ -2179,18 +2181,28 @@ function getPickerHtml(webview, state) {
     }
 
     .customize-head h2,
-    .extras-head h2 {
+    .extras-head h2,
+    .actions-head h2 {
       font-size: 13px;
       line-height: 1.3;
       font-weight: 700;
     }
 
     .customize,
-    .extras {
+    .extras,
+    .actions {
       display: grid;
       grid-template-rows: 46px 1fr;
       padding: 0;
       align-self: stretch;
+    }
+
+    .options-stack {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-self: stretch;
+      min-height: 0;
     }
 
     .options-container {
@@ -2249,11 +2261,10 @@ function getPickerHtml(webview, state) {
       text-transform: uppercase;
     }
 
-    .options-actions {
+    .actions-container {
       display: grid;
-      grid-template-columns: 1fr;
       gap: 12px;
-      align-items: stretch;
+      padding: 16px;
     }
 
     .options-buttons {
@@ -2325,8 +2336,8 @@ function getPickerHtml(webview, state) {
       }
 
       .surface-controls,
-      .options-grid,
-      .options-actions {
+      .options-stack,
+      .options-grid {
         grid-template-columns: 1fr;
       }
 
@@ -2402,72 +2413,79 @@ function getPickerHtml(webview, state) {
         <div id="surfaceControls" class="surface-controls"></div>
       </section>
 
-      <section class="extras" aria-label="Options">
-        <div class="extras-head">
-          <h2>Options</h2>
-        </div>
+      <div class="options-stack">
+        <section class="extras" aria-label="Options">
+          <div class="extras-head">
+            <h2>Options</h2>
+          </div>
 
-        <div class="options-container">
-          <div class="options-section">
-            <div class="options-section-title">Color behavior</div>
-            <div class="options-grid">
-              <div class="field option-item option-wide">
-                <label for="intensity">Intensity <span id="intensityValue"></span></label>
-                <input id="intensity" type="range" min="0" max="100" step="1">
+          <div class="options-container">
+            <div class="options-section">
+              <div class="options-section-title">Color behavior</div>
+              <div class="options-grid">
+                <div class="field option-item option-wide">
+                  <label for="intensity">Intensity <span id="intensityValue"></span></label>
+                  <input id="intensity" type="range" min="0" max="100" step="1">
+                </div>
+
+                <div class="option-item option-checkbox-group">
+                  <label class="checkbox-row option-toggle">
+                    <input id="monochromatic" type="checkbox">
+                    <span>Monochromatic</span>
+                  </label>
+
+                  <label class="checkbox-row option-toggle">
+                    <input id="includeEditorAccent" type="checkbox">
+                    <span>Tint editor selection/cursor</span>
+                  </label>
+                </div>
+
+                <div class="field option-item">
+                  <label for="panelHarmony">Colour relationship</label>
+                  <select id="panelHarmony">
+                    <option value="manual">Manual</option>
+                    <option value="analogous">Analogous</option>
+                    <option value="complementary">Complementary</option>
+                  </select>
+                </div>
               </div>
+            </div>
 
-              <div class="option-item option-checkbox-group">
-                <label class="checkbox-row option-toggle">
-                  <input id="monochromatic" type="checkbox">
-                  <span>Monochromatic</span>
-                </label>
-
-                <label class="checkbox-row option-toggle">
-                  <input id="includeEditorAccent" type="checkbox">
-                  <span>Tint editor selection/cursor</span>
-                </label>
-              </div>
-
+            <div class="options-section">
+              <div class="options-section-title">Target</div>
               <div class="field option-item">
-                <label for="panelHarmony">Colour relationship</label>
-                <select id="panelHarmony">
-                  <option value="manual">Manual</option>
-                  <option value="analogous">Analogous</option>
-                  <option value="complementary">Complementary</option>
+                <label for="applyTo">Apply to</label>
+                <select id="applyTo">
+                  <option value="workspace">Workspace settings</option>
+                  <option value="global">Global settings</option>
                 </select>
               </div>
             </div>
-          </div>
 
-          <div class="options-section">
-            <div class="options-section-title">Target</div>
-            <div class="field option-item">
-              <label for="applyTo">Apply to</label>
-              <select id="applyTo">
-                <option value="workspace">Workspace settings</option>
-                <option value="global">Global settings</option>
-              </select>
+            <div class="options-section">
+              <div class="options-section-title">Presets</div>
+              <div class="favorite-row">
+                <select id="favorites" aria-label="Favourite color sets"></select>
+                <button id="deleteFavorite" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#10005;</span><span>Delete</span></button>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div class="options-section">
-            <div class="options-section-title">Presets</div>
-            <div class="favorite-row">
-              <select id="favorites" aria-label="Favourite color sets"></select>
-              <button id="deleteFavorite" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#10005;</span><span>Delete</span></button>
-            </div>
+        <section class="actions" aria-label="Actions">
+          <div class="actions-head">
+            <h2>Actions</h2>
           </div>
 
-          <div class="options-section options-actions">
-            <div class="options-section-title">Actions</div>
+          <div class="actions-container">
             <div class="button-row compact options-buttons">
               <button id="clear" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#8634;</span><span>Restore previous</span></button>
               <button id="resetDefault" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#8635;</span><span>Reset IDE defaults</span></button>
               <button id="saveFavorite" class="secondary" type="button">${saveFavoriteIconHtml}<span>Save as favourite...</span></button>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </section>
   </main>
 

@@ -864,9 +864,13 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("options-grid"));
   assert.ok(html.includes("option-item"));
   assert.ok(html.includes("option-checkbox-group"));
+  assert.ok(html.includes("options-stack"));
   assert.ok(html.includes("options-section"));
   assert.ok(html.includes("options-section-title"));
-  assert.ok(html.includes("options-actions"));
+  assert.ok(html.includes('<section class="actions" aria-label="Actions">'));
+  assert.ok(html.includes("actions-head"));
+  assert.ok(html.includes("actions-container"));
+  assert.equal(html.includes("options-actions"), false);
   assert.ok(html.includes("choose from the list..."));
   assert.ok(html.includes("select.placeholder"));
   assert.ok(html.includes("let selectedFavoriteName;"));
@@ -927,6 +931,8 @@ test("picker html contains the simplified workflow controls", () => {
   const saveIndex = html.indexOf('id="saveFavorite"');
   const resetIndex = html.indexOf('id="resetDefault"');
   const optionsIndex = html.indexOf('<section class="extras"');
+  const optionsStackIndex = html.indexOf('<div class="options-stack">');
+  const actionsIndex = html.indexOf('<section class="actions"');
   const colorsIndex = html.indexOf('<section class="controls" aria-label="Color picker">');
   const soberIndex = html.indexOf('id="sober"');
   const paletteIndex = html.indexOf('<section class="preview" aria-label="Color palette preview">');
@@ -936,8 +942,10 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(soberIndex > colorsIndex && soberIndex < paletteIndex);
   assert.ok(paletteIndex > colorsIndex);
   assert.ok(customizePanelIndex > paletteIndex);
-  assert.ok(optionsIndex > customizePanelIndex);
-  assert.ok(saveIndex > optionsIndex);
+  assert.ok(optionsStackIndex > customizePanelIndex);
+  assert.ok(optionsIndex > optionsStackIndex);
+  assert.ok(actionsIndex > optionsIndex);
+  assert.ok(saveIndex > actionsIndex);
   assert.ok(saveIndex > resetIndex);
   assert.ok(html.indexOf('id="surpriseNote"') > colorsIndex && html.indexOf('id="surpriseNote"') < paletteIndex);
 });
