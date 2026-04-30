@@ -180,18 +180,18 @@ a {
 .hero-badge {
   display: grid;
   place-items: center;
-  width: 88px;
-  height: 88px;
-  margin-bottom: 24px;
-  border: 1px solid rgba(101, 232, 255, 0.28);
-  border-radius: var(--radius);
-  background: rgba(15, 20, 29, 0.76);
+  width: 132px;
+  height: 132px;
+  margin-bottom: 22px;
 }
 
 .hero-badge img {
-  width: 68px;
-  height: 68px;
+  width: 122px;
+  height: 122px;
   object-fit: contain;
+  filter:
+    drop-shadow(0 18px 36px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 18px rgba(101, 232, 255, 0.34));
 }
 
 .eyebrow {
@@ -677,15 +677,16 @@ h3 {
 .gallery-thumbs {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, 112px);
+  justify-content: center;
+  gap: 8px;
 }
 
 .gallery-thumb {
   min-width: 0;
-  padding: 7px;
+  padding: 5px;
   color: rgba(244, 247, 251, 0.72);
-  text-align: left;
+  text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.04);
@@ -707,16 +708,16 @@ h3 {
 
 .gallery-thumb img {
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 11;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
 .gallery-thumb span {
   display: block;
   overflow: hidden;
-  margin-top: 8px;
-  font-size: 12px;
+  margin-top: 6px;
+  font-size: 11px;
   font-weight: 820;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -929,11 +930,10 @@ h3 {
 .testimonial-card {
   position: relative;
   display: grid;
-  align-content: end;
-  gap: 14px;
+  align-content: center;
+  gap: 10px;
   min-width: 0;
-  margin: 0;
-  padding: 20px;
+  padding: 16px;
   overflow: hidden;
 }
 
@@ -948,19 +948,41 @@ h3 {
   line-height: 1;
 }
 
+.testimonial-label {
+  position: relative;
+  margin: 0;
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.testimonial-card figure {
+  position: relative;
+  margin: 0;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.testimonial-card figure:nth-of-type(1) {
+  border-top: 0;
+  padding-top: 0;
+}
+
 .testimonial-card blockquote {
   position: relative;
   margin: 0;
   color: #ffffff;
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 820;
-  line-height: 1.18;
+  line-height: 1.28;
 }
 
 .testimonial-card figcaption {
   position: relative;
+  margin-top: 3px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 760;
 }
 
@@ -1048,12 +1070,13 @@ h3 {
   .gallery-thumbs {
     display: flex;
     overflow-x: auto;
+    justify-content: flex-start;
     padding-bottom: 4px;
     scroll-snap-type: x proximity;
   }
 
   .gallery-thumb {
-    min-width: 180px;
+    min-width: 128px;
     scroll-snap-align: start;
   }
 
@@ -1081,13 +1104,13 @@ h3 {
   }
 
   .hero-badge {
-    width: 76px;
-    height: 76px;
+    width: 106px;
+    height: 106px;
   }
 
   .hero-badge img {
-    width: 60px;
-    height: 60px;
+    width: 98px;
+    height: 98px;
   }
 
   .hero h1 {
@@ -1139,7 +1162,7 @@ h3 {
   }
 
   .gallery-thumb {
-    min-width: 154px;
+    min-width: 112px;
   }
 
   .section {

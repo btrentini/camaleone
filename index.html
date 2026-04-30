@@ -95,9 +95,8 @@
               <dd>MIT</dd>
             </div>
             <div class="stats-fact" data-extension-stats>
-              <dt>Installs + downloads</dt>
               <dd id="combined-stats-total" aria-live="polite">Loading</dd>
-              <p id="combined-stats-detail">VS Code installs + Open VSX downloads</p>
+              <p id="combined-stats-detail">Total installs / downloads</p>
             </div>
           </dl>
         </div>
@@ -208,10 +207,25 @@
               <span>Bitcoin public key</span>
               <code>add-your-bitcoin-public-key-here</code>
             </div>
-            <figure class="testimonial-card">
-              <blockquote>Loving it! Installed and in use!!</blockquote>
-              <figcaption>Camaleone user</figcaption>
-            </figure>
+            <div class="testimonial-card" aria-label="User testimonials">
+              <p class="testimonial-label">User notes</p>
+              <figure>
+                <blockquote>Loving it! Installed and in use!!</blockquote>
+                <figcaption>Camaleone user</figcaption>
+              </figure>
+              <figure>
+                <blockquote>easy to use. great interface</blockquote>
+                <figcaption>Camaleone user</figcaption>
+              </figure>
+              <figure>
+                <blockquote>Way Better than Peacock!</blockquote>
+                <figcaption>Camaleone user</figcaption>
+              </figure>
+              <figure>
+                <blockquote>It's just beautiful</blockquote>
+                <figcaption>Camaleone user</figcaption>
+              </figure>
+            </div>
           </div>
         </div>
       </section>
@@ -516,9 +530,9 @@
             const combined = vsCode.installs + openVsx.downloads;
 
             totalEl.textContent = formatter.format(combined);
-            detailEl.textContent = `${formatter.format(vsCode.installs)} VS Code installs + ${formatter.format(openVsx.downloads)} Open VSX downloads`;
+            detailEl.textContent = "Total installs / downloads";
             statsRoot.dataset.loaded = "true";
-            statsRoot.title = `VS Code package downloads: ${formatter.format(vsCode.downloads)}`;
+            statsRoot.title = `${formatter.format(vsCode.installs)} VS Code installs + ${formatter.format(openVsx.downloads)} Open VSX downloads`;
           } catch (error) {
             totalEl.textContent = "Live";
             detailEl.textContent = "Marketplace stats update when available";
