@@ -886,7 +886,7 @@ test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
   assert.equal(manifest.publisher, "trentinium");
   assert.equal(manifest.icon, "assets/icons/ico/camaleone_transparent.ico");
-  assert.equal(manifest.repository.url, "https://github.com/btrentini/camaleone.git");
+  assert.equal(manifest.repository.url, "https://github.com/trentinium/camaleone.git");
   assert.ok(manifest.description.includes("sober mode"));
   assert.ok(manifest.description.includes("favourites"));
   assert.equal(manifest.contributes.configuration.properties["camaleone.sober"].default, true);
@@ -920,19 +920,33 @@ test("manifest and generated icon assets use the organized paths", () => {
   }
 
   const readme = textFile("README.md");
+  const postimgScreenshots = [
+    ["https://postimg.cc/ctxGnpmd", "https://i.postimg.cc/1X6mLPVV/camaleone-0.png"],
+    ["https://postimg.cc/YjMHZFHc", "https://i.postimg.cc/9XqQ4Pgf/camaleone-1.png"],
+    ["https://postimg.cc/w3gpZNpH", "https://i.postimg.cc/VsbkS9ZS/camaleone-2.png"],
+    ["https://postimg.cc/Bt40kF0G", "https://i.postimg.cc/fW0R37qk/camaleone-3.png"],
+    ["https://postimg.cc/3WYTVGTQ", "https://i.postimg.cc/Pf85LbVJ/camaleone-4.png"],
+    ["https://postimg.cc/t7kjjgqJ", "https://i.postimg.cc/65J5C7Fr/camaleone-5.png"],
+    ["https://postimg.cc/jCcbbjxw", "https://i.postimg.cc/m2f27cKw/camaleone-6.png"],
+    ["https://postimg.cc/14BQQzmg", "https://i.postimg.cc/X7S79Ztg/camaleone-7.png"],
+    ["https://postimg.cc/kDsmm5Jt", "https://i.postimg.cc/4NkNpKjw/camaleone-8.png"],
+    ["https://postimg.cc/Th066PdS", "https://i.postimg.cc/65J5C7D9/camaleone-9.png"]
+  ];
   assert.ok(readme.includes("## Marketplace Screenshots"));
   assert.ok(readme.indexOf("## Marketplace Screenshots") < readme.indexOf("## How To Use"));
   assert.ok(readme.includes("| --- | --- | --- | --- | --- |"));
   for (let index = 0; index <= 9; index += 1) {
-    assert.ok(readme.includes(`assets/screenshots/marketplace/camaleone-${index}.png`));
-    assert.ok(readme.includes(`)](assets/screenshots/marketplace/camaleone-${index}.png)`));
+    assert.ok(readme.includes(postimgScreenshots[index][0]));
+    assert.ok(readme.includes(postimgScreenshots[index][1]));
+    assert.ok(readme.includes(`)](${postimgScreenshots[index][0]})`));
   }
+  assert.equal(readme.includes("](assets/screenshots/marketplace/"), false);
 });
 
-test("save favourite placeholder uses the requested example name", () => {
+test("save favourite placeholder uses a non-personal example name", () => {
   const source = textFile("extension.js");
-  assert.ok(source.includes("e.g., 'Bruno Brown Chicken Bron Cow'"));
-  assert.equal(source.includes("Bruno Blue"), false);
+  assert.ok(source.includes("e.g., 'Project Green Focus'"));
+  assert.equal(source.includes("Brown Chicken"), false);
 });
 
 test("README includes marketplace how-to-use instructions", () => {

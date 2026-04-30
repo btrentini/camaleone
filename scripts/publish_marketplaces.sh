@@ -123,17 +123,17 @@ fi
 
 if [[ "$publish_vscode" -eq 1 ]]; then
   log "Publishing to VS Code Marketplace as $publisher.$name"
-  vsce publish --no-dependencies --packagePath "$vsix_path" --pat "$VSCE_PAT"
+  vsce publish --no-dependencies --packagePath "$vsix_path"
 fi
 
 if [[ "$publish_openvsx" -eq 1 ]]; then
   if [[ "$ensure_openvsx_namespace" -eq 1 ]]; then
     log "Ensuring Open VSX namespace $publisher exists"
-    npx --yes ovsx create-namespace "$publisher" -p "$OVSX_PAT" || true
+    npx --yes ovsx create-namespace "$publisher" || true
   fi
 
   log "Publishing to Open VSX/Cursor as $publisher.$name"
-  npx --yes ovsx publish "$vsix_path" -p "$OVSX_PAT"
+  npx --yes ovsx publish "$vsix_path"
 fi
 
 log "Published $publisher.$name v$version"

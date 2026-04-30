@@ -8,12 +8,12 @@
   "icon": "assets/icons/ico/camaleone_transparent.ico",
   "repository": {
     "type": "git",
-    "url": "https://github.com/btrentini/camaleone.git"
+    "url": "https://github.com/trentinium/camaleone.git"
   },
   "bugs": {
-    "url": "https://github.com/btrentini/camaleone/issues"
+    "url": "https://github.com/trentinium/camaleone/issues"
   },
-  "homepage": "https://github.com/btrentini/camaleone#readme",
+  "homepage": "https://github.com/trentinium/camaleone#readme",
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"

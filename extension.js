@@ -1131,7 +1131,7 @@ async function saveFavorite(context, payload) {
   const name = await vscode.window.showInputBox({
     title: "Camaleone",
     prompt: "Name this favourite color set",
-    placeHolder: "e.g., 'Bruno Brown Chicken Bron Cow'",
+    placeHolder: "e.g., 'Project Green Focus'",
     value: suggestedName,
     validateInput: (value) => {
       const trimmed = String(value || "").trim();
