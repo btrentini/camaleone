@@ -1628,6 +1628,10 @@ function getPickerHtml(webview, state) {
       font: inherit;
     }
 
+    select.placeholder {
+      color: var(--vscode-descriptionForeground);
+    }
+
     input[type="color"] {
       height: 34px;
       padding: 0;
@@ -1761,7 +1765,7 @@ function getPickerHtml(webview, state) {
 
     .favorite-row {
       display: grid;
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto;
       gap: 8px;
       align-items: center;
     }
@@ -2027,7 +2031,6 @@ function getPickerHtml(webview, state) {
           <div class="options-actions">
             <div class="favorite-row">
               <select id="favorites" aria-label="Favourite color sets"></select>
-              <button id="applyFavorite" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#9734;</span><span>Apply favourite</span></button>
               <button id="deleteFavorite" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#10005;</span><span>Delete</span></button>
             </div>
 
@@ -2064,7 +2067,6 @@ function getPickerHtml(webview, state) {
       surfaceControls: document.getElementById("surfaceControls"),
       surfacePreview: document.getElementById("surfacePreview"),
       favorites: document.getElementById("favorites"),
-      applyFavorite: document.getElementById("applyFavorite"),
       deleteFavorite: document.getElementById("deleteFavorite"),
       saveFavorite: document.getElementById("saveFavorite"),
       surprise: document.getElementById("surprise"),
@@ -2117,8 +2119,10 @@ function getPickerHtml(webview, state) {
       elements.resetDefault.addEventListener("click", postResetDefault);
       elements.surprise.addEventListener("click", surpriseMe);
       elements.saveFavorite.addEventListener("click", postSaveFavorite);
-      elements.applyFavorite.addEventListener("click", applySelectedFavorite);
-      elements.favorites.addEventListener("change", syncFavoriteActions);
+      elements.favorites.addEventListener("change", () => {
+        syncFavoriteActions();
+        applySelectedFavorite();
+      });
       elements.deleteFavorite.addEventListener("click", postDeleteFavorite);
 
       window.addEventListener("message", (event) => {
@@ -2710,12 +2714,15 @@ function getPickerHtml(webview, state) {
 
     function renderFavorites() {
       elements.favorites.textContent = "";
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "choose from the list...";
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      elements.favorites.append(placeholder);
+
       if (!favorites.length) {
-        const empty = document.createElement("option");
-        empty.value = "";
-        empty.textContent = "No favourites saved";
-        elements.favorites.append(empty);
-        elements.applyFavorite.disabled = true;
+        elements.favorites.classList.add("placeholder");
         elements.deleteFavorite.disabled = true;
         return;
       }
@@ -2732,7 +2739,7 @@ function getPickerHtml(webview, state) {
 
     function syncFavoriteActions() {
       const favorite = favorites.find((entry) => entry.id === elements.favorites.value);
-      elements.applyFavorite.disabled = !favorite;
+      elements.favorites.classList.toggle("placeholder", !favorite);
       elements.deleteFavorite.disabled = !favorite || Boolean(favorite.builtin);
     }
 

@@ -22,7 +22,7 @@ It is built for people who work across many projects and want a fast visual cue 
 6. Choose whether to apply the colors to `Workspace settings` or `Global settings`.
 7. Use `Customize` to tune individual surfaces such as the title bar, activity bar, side bar, panel, status bar, buttons, and editor accents. Surface changes apply automatically; `Revert` returns a surface to the generated palette color.
 8. Click `Apply colors` to write the current palette.
-9. Click `Save as favourite...` to store a palette, then use `Apply favourite` to reapply it later.
+9. Click `Save as favourite...` to store a palette, then choose it from the favourites list to apply it later.
 10. Use `Restore previous` to return to the colors Camaleone replaced, or `Reset IDE defaults` to remove Camaleone-managed colors.
 
 ## Default Favourites

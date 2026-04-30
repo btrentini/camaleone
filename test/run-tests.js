@@ -785,6 +785,11 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("option-item"));
   assert.ok(html.includes("options-actions"));
   assert.ok(html.includes("save-favorite-row"));
+  assert.ok(html.includes("choose from the list..."));
+  assert.ok(html.includes("select.placeholder"));
+  assert.ok(html.includes('elements.favorites.addEventListener("change", () =>'));
+  assert.equal(html.includes('id="applyFavorite"'), false);
+  assert.equal(html.includes(">Apply favourite<"), false);
   assert.ok(html.includes("img-src vscode-webview:;"));
   assert.ok(html.includes("brand-lockup"));
   assert.ok(html.includes("title-icon"));
@@ -894,6 +899,7 @@ test("README includes marketplace how-to-use instructions", () => {
   assert.ok(readme.includes("Run `Camaleone: Open Color Picker`."));
   assert.ok(readme.includes("Click `Apply colors` to write the current palette."));
   assert.ok(readme.includes("Click `Save as favourite...` to store a palette"));
+  assert.ok(readme.includes("choose it from the favourites list to apply it later"));
   assert.ok(readme.includes("Use `Restore previous`"));
   assert.ok(readme.indexOf("## How To Use") < readme.indexOf("## Local Development"));
 });
