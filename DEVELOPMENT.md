@@ -45,7 +45,8 @@ npm run publish:marketplaces -- --source vsc --version current
 - If VS Code shows `Extensions have been modified on disk. Please reload the window.`, reload the Extension Development Host after changing extension files.
 - The errors `nvidia-smi: command not found` and `Could not find GPU with index 0 make sure you have a GPU available` come from the installed `maimonator.gpu-monitor` extension, not Camaleone. This workspace sets `gpu-monitor.binaryPath` to a harmless no-GPU response in `.vscode/settings.json` for local development on macOS.
 - Warnings such as `DEP0040` for `punycode` or `ExperimentalWarning: SQLite is an experimental feature` are emitted by the VS Code/Cursor host process or bundled editor services, not by Camaleone. Camaleone does not import `punycode` or SQLite.
-- The `Run Extension` launch profile isolates the development host with `--user-data-dir` and `--extensions-dir`. It does not suppress Node warnings, so real extension failures remain visible during development.
+- The `restore-terminals` startup log comes from the installed `ethansk.restore-terminals` extension. This workspace includes a no-op `.vscode/restore-terminals.json` so that extension has an explicit local config, and the `Run Extension` launch profile disables `ethansk.restore-terminals` and `GitHub.copilot-chat` inside the Extension Development Host.
+- The `Run Extension` launch profile isolates the development host with `--user-data-dir` and `--extensions-dir`. It does not suppress Node warnings with `NODE_NO_WARNINGS` or `--no-warnings`, so real Camaleone failures remain visible during development.
 
 ## Validate
 

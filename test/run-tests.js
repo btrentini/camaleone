@@ -954,7 +954,7 @@ test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
   assert.equal(manifest.publisher, "trentinium");
   assert.equal(manifest.icon, "assets/icons/ico/camaleone_transparent.ico");
-  assert.equal(manifest.repository.url, "https://github.com/trentinium/camaleone.git");
+  assert.equal(manifest.repository.url, "https://github.com/btrentini/camaleone.git");
   assert.ok(manifest.description.includes("sober mode"));
   assert.ok(manifest.description.includes("favourites"));
   assert.equal(manifest.contributes.configuration.properties["camaleone.sober"].default, true);
@@ -982,33 +982,37 @@ test("manifest and generated icon assets use the organized paths", () => {
     "assets/screenshots/marketplace/camaleone-6.png",
     "assets/screenshots/marketplace/camaleone-7.png",
     "assets/screenshots/marketplace/camaleone-8.png",
-    "assets/screenshots/marketplace/camaleone-9.png"
+    "assets/screenshots/marketplace/camaleone-9.png",
+    "assets/screenshots/marketplace/camaleone-v04-1.png",
+    "assets/screenshots/marketplace/camaleone-v04-2.png",
+    "assets/screenshots/marketplace/camaleone-v04-3.png",
+    "assets/screenshots/marketplace/camaleone-v04-4.png",
+    "assets/screenshots/marketplace/camaleone-v04-5.png"
   ]) {
     assert.equal(fs.existsSync(path.join(repoRoot, relativePath)), true, `${relativePath} should exist`);
   }
 
   const readme = textFile("README.md");
-  const postimgScreenshots = [
-    ["https://postimg.cc/ctxGnpmd", "https://i.postimg.cc/1X6mLPVV/camaleone-0.png"],
-    ["https://postimg.cc/YjMHZFHc", "https://i.postimg.cc/9XqQ4Pgf/camaleone-1.png"],
-    ["https://postimg.cc/w3gpZNpH", "https://i.postimg.cc/VsbkS9ZS/camaleone-2.png"],
-    ["https://postimg.cc/Bt40kF0G", "https://i.postimg.cc/fW0R37qk/camaleone-3.png"],
-    ["https://postimg.cc/3WYTVGTQ", "https://i.postimg.cc/Pf85LbVJ/camaleone-4.png"],
-    ["https://postimg.cc/t7kjjgqJ", "https://i.postimg.cc/65J5C7Fr/camaleone-5.png"],
-    ["https://postimg.cc/jCcbbjxw", "https://i.postimg.cc/m2f27cKw/camaleone-6.png"],
-    ["https://postimg.cc/14BQQzmg", "https://i.postimg.cc/X7S79Ztg/camaleone-7.png"],
-    ["https://postimg.cc/kDsmm5Jt", "https://i.postimg.cc/4NkNpKjw/camaleone-8.png"],
-    ["https://postimg.cc/Th066PdS", "https://i.postimg.cc/65J5C7D9/camaleone-9.png"]
+  const githubScreenshotBase = "https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace";
+  const marketplaceScreenshots = [
+    "camaleone-v04-1.png",
+    "camaleone-v04-2.png",
+    "camaleone-v04-3.png",
+    "camaleone-v04-4.png",
+    "camaleone-v04-5.png"
   ];
   assert.ok(readme.includes("## Marketplace Screenshots"));
   assert.ok(readme.indexOf("## Marketplace Screenshots") < readme.indexOf("## How To Use"));
-  assert.ok(readme.includes("| --- | --- | --- | --- | --- |"));
-  for (let index = 0; index <= 9; index += 1) {
-    assert.ok(readme.includes(postimgScreenshots[index][0]));
-    assert.ok(readme.includes(postimgScreenshots[index][1]));
-    assert.ok(readme.includes(`)](${postimgScreenshots[index][0]})`));
+  assert.ok(readme.includes("<td colspan=\"4\">"));
+  assert.ok(readme.includes("camaleone-v04-2.png"));
+  assert.ok(readme.includes("<td width=\"25%\">"));
+  for (const filename of marketplaceScreenshots) {
+    const url = `${githubScreenshotBase}/${filename}`;
+    assert.ok(readme.includes(`href="${url}"`));
+    assert.ok(readme.includes(`src="${url}"`));
   }
   assert.equal(readme.includes("](assets/screenshots/marketplace/"), false);
+  assert.equal(readme.includes("postimg.cc"), false);
 });
 
 test("save favourite placeholder uses a non-personal example name", () => {
@@ -1090,12 +1094,15 @@ test("webview script is syntactically valid after state injection", () => {
   new Function(match[1]);
 });
 
-test("debug configuration isolates the extension without suppressing warnings", () => {
+test("debug configuration isolates the extension and disables known noisy host extensions", () => {
   const launch = JSON.parse(textFile(".vscode/launch.json"));
   const args = launch.configurations[0].args;
 
   assert.ok(args.includes("--user-data-dir=${workspaceFolder}/.vscode-test/user-data"));
   assert.ok(args.includes("--extensions-dir=${workspaceFolder}/.vscode-test/extensions"));
+  assert.ok(args.includes("--disable-extension"));
+  assert.ok(args.includes("ethansk.restore-terminals"));
+  assert.ok(args.includes("GitHub.copilot-chat"));
   assert.ok(args.includes("--extensionDevelopmentPath=${workspaceFolder}"));
   assert.ok(args.includes("${workspaceFolder}/test/workspace"));
   assert.equal(args.includes("--disable-extensions"), false);
@@ -1126,6 +1133,17 @@ test("workspace guards the known third-party GPU Monitor startup warning", () =>
 
   assert.equal(projectText.includes("restoreTerminals.runOnStartup"), false);
   assert.equal(executableText.includes("NODE_NO_WARNINGS"), false);
+});
+
+test("workspace provides a no-op Restore Terminals file config", () => {
+  const settings = JSON.parse(textFile(".vscode/restore-terminals.json"));
+  const testWorkspaceSettings = JSON.parse(textFile("test/workspace/.vscode/restore-terminals.json"));
+
+  for (const config of [settings, testWorkspaceSettings]) {
+    assert.equal(config.runOnStartup, false);
+    assert.equal(config.keepExistingTerminalsOpen, true);
+    assert.deepEqual(config.terminals, []);
+  }
 });
 
 test("extension does not import host warning modules", () => {

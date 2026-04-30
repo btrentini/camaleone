@@ -1,0 +1,6 @@
+{
+  "runOnStartup": false,
+  "keepExistingTerminalsOpen": true,
+  "artificialDelayMilliseconds": 150,
+  "terminals": []
+}

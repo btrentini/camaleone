@@ -1,4 +1,41 @@
 {
   "gpu-monitor.binaryPath": "/bin/echo 'No NVIDIA GPU, 0 MiB, 0 MiB, 0, 0 %, 0 %, 0 MHz, 0 MHz' #",
-  "gpu-monitor.updateInterval": 600000
+  "gpu-monitor.updateInterval": 600000,
+  "workbench.colorCustomizations": {
+    "[Cursor Dark Midnight]": {
+      "editorRuler.foreground": "#FFFFFF22",
+      "editorIndentGuide.background1": "#FFFFFF14",
+      "editorIndentGuide.activeBackground1": "#FFFFFF22"
+    },
+    "badge.background": "#1e1e1e",
+    "badge.foreground": "#ffffff",
+    "button.background": "#1e1e1e",
+    "button.foreground": "#ffffff",
+    "button.hoverBackground": "#393939",
+    "button.secondaryBackground": "#1e1e1e",
+    "button.secondaryForeground": "#ffffff",
+    "button.secondaryHoverBackground": "#393939",
+    "commandCenter.activeBackground": "#c99c47",
+    "commandCenter.activeBorder": "#1e1e1e",
+    "commandCenter.activeForeground": "#ffffff",
+    "commandCenter.background": "#c28e2e",
+    "commandCenter.debuggingBackground": "#1e1e1e",
+    "commandCenter.foreground": "#ffffff",
+    "commandCenter.inactiveBorder": "#1e1e1e",
+    "commandCenter.inactiveForeground": "#ffffffbd",
+    "focusBorder": "#1e1e1e",
+    "list.activeSelectionBackground": "#1e1e1e6b",
+    "list.activeSelectionForeground": "#ffffff",
+    "list.hoverBackground": "#1e1e1e38",
+    "list.inactiveSelectionBackground": "#1e1e1e47",
+    "panelTitle.activeBorder": "#1e1e1e",
+    "sideBar.background": "#1e1e1e",
+    "sideBar.foreground": "#ffffff",
+    "sideBarSectionHeader.background": "#1e1e1e",
+    "sideBarSectionHeader.foreground": "#ffffff",
+    "sideBarTitle.foreground": "#ffffff",
+    "statusBar.noFolderBackground": "#234586",
+    "tab.activeBorderTop": "#1e1e1e",
+    "terminalCursor.foreground": "#2558b7"
+  }
 }

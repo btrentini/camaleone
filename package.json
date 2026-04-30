@@ -2,18 +2,18 @@
   "name": "camaleone",
   "displayName": "Camaleone",
   "description": "Color for IDE windows. Better than Peacock: gradients, sober mode, presets, favourites, per-surface controls, and restore.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "trentinium",
   "license": "MIT",
   "icon": "assets/icons/ico/camaleone_transparent.ico",
   "repository": {
     "type": "git",
-    "url": "https://github.com/trentinium/camaleone.git"
+    "url": "https://github.com/btrentini/camaleone.git"
   },
   "bugs": {
-    "url": "https://github.com/trentinium/camaleone/issues"
+    "url": "https://github.com/btrentini/camaleone/issues"
   },
-  "homepage": "https://github.com/trentinium/camaleone#readme",
+  "homepage": "https://github.com/btrentini/camaleone#readme",
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"

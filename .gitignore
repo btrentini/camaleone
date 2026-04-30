@@ -1,5 +1,6 @@
 node_modules/
 .vscode-test/
-test/workspace/.vscode/
+test/workspace/.vscode/*
+!test/workspace/.vscode/restore-terminals.json
 *.vsix
 .DS_Store
