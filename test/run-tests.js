@@ -884,7 +884,9 @@ test("picker html contains the simplified workflow controls", () => {
 
 test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
+  assert.equal(manifest.publisher, "btrentini");
   assert.equal(manifest.icon, "assets/icons/store/camaleone.png");
+  assert.equal(manifest.repository.url, "https://github.com/btrentini/camaleone.git");
   assert.ok(manifest.description.includes("sober mode"));
   assert.ok(manifest.description.includes("favourites"));
   assert.equal(manifest.contributes.configuration.properties["camaleone.sober"].default, true);
@@ -910,13 +912,15 @@ test("manifest and generated icon assets use the organized paths", () => {
     "assets/screenshots/marketplace/camaleone-4.png",
     "assets/screenshots/marketplace/camaleone-5.png",
     "assets/screenshots/marketplace/camaleone-6.png",
-    "assets/screenshots/marketplace/camaleone-7.png"
+    "assets/screenshots/marketplace/camaleone-7.png",
+    "assets/screenshots/marketplace/camaleone-8.png",
+    "assets/screenshots/marketplace/camaleone-9.png"
   ]) {
     assert.equal(fs.existsSync(path.join(repoRoot, relativePath)), true, `${relativePath} should exist`);
   }
 
   const readme = textFile("README.md");
-  for (let index = 0; index <= 7; index += 1) {
+  for (let index = 0; index <= 9; index += 1) {
     assert.ok(readme.includes(`assets/screenshots/marketplace/camaleone-${index}.png`));
   }
 });
@@ -936,13 +940,13 @@ test("README includes marketplace how-to-use instructions", () => {
   assert.ok(readme.includes("Click `Save as favourite...` to store a palette"));
   assert.ok(readme.includes("choose it from the favourites list to apply it later"));
   assert.ok(readme.includes("Use `Restore previous`"));
-  assert.ok(readme.indexOf("## How To Use") < readme.indexOf("## Local Development"));
+  assert.ok(readme.indexOf("## How To Use") < readme.indexOf("## Preloaded Favourites"));
 });
 
 test("README includes marketplace project description and feature copy", () => {
   const readme = textFile("README.md");
   assert.ok(readme.includes("## Marketplace Description"));
-  assert.ok(readme.includes("distinct two-color identity"));
+  assert.ok(readme.includes("distinct identity"));
   assert.ok(readme.includes("default `Sober` mode"));
   assert.ok(readme.includes("customize individual surfaces"));
   assert.ok(readme.includes("Save favourite palettes"));
@@ -952,7 +956,7 @@ test("README includes marketplace project description and feature copy", () => {
 
 test("README lists default Magnificent 7 and university favourites", () => {
   const readme = textFile("README.md");
-  assert.ok(readme.includes("## Default Favourites"));
+  assert.ok(readme.includes("## Preloaded Favourites"));
   assert.ok(readme.includes("Magnificent 7"));
   assert.ok(readme.includes("NVIDIA (`#76b900`)"));
   assert.ok(readme.includes("QS 2026 top 10 universities"));
