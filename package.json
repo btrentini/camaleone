@@ -1,7 +1,7 @@
 {
   "name": "camaleone",
   "displayName": "Camaleone",
-  "description": "Gradient-inspired VS Code and Cursor window colors with sober mode, per-surface controls, favourites, and restore.",
+  "description": "Color for IDE windows. Better than Peacock: gradients, sober mode, presets, favourites, per-surface controls, and restore.",
   "version": "0.1.2",
   "publisher": "trentinium",
   "license": "MIT",

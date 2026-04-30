@@ -1,5 +1,7 @@
 # Camaleone
 
+Color for IDE windows. Better than Peacock: gradients, sober mode, presets, favourites, per-surface controls, and restore.
+
 Camaleone is a VS Code and Cursor extension that gives each window more personality, with gradient-inspired treatment, high customization, and presets with the colours of Magnificent 7 companies and the top 10 universities in the world.
 
 VS Code's supported workbench color API accepts individual color values. Camaleone samples a start-to-end gradient and applies those samples across the title bar, activity bar, side bar, panel, status bar, buttons, borders, and optional editor accents.
@@ -65,9 +67,3 @@ Secondary commands:
 - `Camaleone: Surprise Me`
 - `Camaleone: Save Current Colors as Favourite`
 - `Camaleone: Apply Favourite Colors`
-
-## Icons
-
-- Marketplace icon: `assets/icons/ico/camaleone_transparent.ico`
-- Source PNGs: `assets/icons/png/`
-- ICO exports: `assets/icons/ico/`
