@@ -959,6 +959,8 @@ test("README includes marketplace project description and feature copy", () => {
   assert.ok(readme.includes("Secondary commands:"));
   assert.ok(readme.includes("opens the customization interface for choosing colors"));
   assert.ok(readme.indexOf("## Marketplace Description") < readme.indexOf("## How To Use"));
+  assert.equal(readme.includes("## Settings"), false);
+  assert.equal(readme.includes("## Customization Notes"), false);
 });
 
 test("README lists default Magnificent 7 and university favourites", () => {
