@@ -517,6 +517,69 @@ h3 {
   margin-top: 0;
 }
 
+.support-section {
+  background: #080a12;
+  border-top: 1px solid var(--line);
+}
+
+.support-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(360px, 1fr);
+  gap: 44px;
+  align-items: center;
+}
+
+.support-panel {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.qr-card,
+.wallet-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.qr-card {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 18px;
+}
+
+.qr-card img {
+  width: 132px;
+  height: 132px;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.qr-card span,
+.wallet-card span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.wallet-card {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 20px;
+}
+
+.wallet-card code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 14px;
+}
+
 .site-footer {
   padding: 28px 0;
   color: #ffffff;
@@ -571,6 +634,7 @@ h3 {
   .feature-grid,
   .split-grid,
   .descriptor-grid,
+  .support-grid,
   .final-grid {
     grid-template-columns: 1fr;
   }
@@ -589,6 +653,10 @@ h3 {
 
   .final-grid .cta-actions {
     justify-content: flex-start;
+  }
+
+  .support-panel {
+    grid-template-columns: 1fr;
   }
 }
 
