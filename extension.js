@@ -2133,19 +2133,20 @@ function getPickerHtml(webview, state) {
         color.addEventListener("input", () => {
           markCustomSurface();
           text.value = color.value;
-          updatePreview();
+          updatePreviewAndApply(120);
         });
         color.addEventListener("change", () => {
           markCustomSurface();
           text.value = color.value;
-          updatePreview();
-          postApply();
+          updatePreviewAndApply(0);
         });
         text.addEventListener("input", () => {
           const normalized = normalizeHex(text.value);
           if (normalized) {
             markCustomSurface();
             color.value = normalized;
+            updatePreviewAndApply(180);
+            return;
           }
           updatePreview();
         });
@@ -2157,8 +2158,7 @@ function getPickerHtml(webview, state) {
           markCustomSurface();
           color.value = normalized;
           text.value = normalized;
-          updatePreview();
-          postApply();
+          updatePreviewAndApply(0);
         });
         resetButton.addEventListener("click", () => revertSurfaceOverride(surface.id));
 
@@ -2237,7 +2237,7 @@ function getPickerHtml(webview, state) {
         return;
       }
 
-      const suggested = getGeneratedSurfaceColors({}, true)[surfaceId] || state.defaultChoices.startColor;
+      const suggested = solidHex(getGeneratedSurfaceColors({}, true)[surfaceId]) || state.defaultChoices.startColor;
       control.checkbox.checked = true;
       control.checkbox.dataset.custom = "false";
       control.color.value = suggested;
@@ -2245,8 +2245,7 @@ function getPickerHtml(webview, state) {
       control.color.disabled = false;
       control.text.disabled = false;
       control.resetButton.disabled = true;
-      updatePreview();
-      postApply();
+      updatePreviewAndApply(0);
     }
 
     function collectChoices() {

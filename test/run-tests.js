@@ -729,6 +729,10 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("revertSurfaceOverride"));
   assert.ok(html.includes('color.addEventListener("change"'));
   assert.ok(html.includes('text.addEventListener("change"'));
+  assert.ok(html.includes('color.addEventListener("input", () =>'));
+  assert.ok(html.includes("updatePreviewAndApply(120);"));
+  assert.ok(html.includes("updatePreviewAndApply(180);"));
+  assert.ok(html.includes("const suggested = solidHex(getGeneratedSurfaceColors({}, true)[surfaceId])"));
   assert.ok(html.includes("resetButton.innerHTML"));
   assert.ok(html.includes("let applyTimer;"));
   assert.ok(html.includes('elements.intensity.addEventListener("input", () => updatePreviewAndApply(120));'));
