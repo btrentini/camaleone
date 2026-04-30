@@ -4,7 +4,20 @@ Camaleone is a VS Code and Cursor extension that gives each window a two-color i
 
 VS Code's supported workbench color API accepts individual color values, not literal CSS gradients on the main app chrome. Camaleone samples a start-to-end gradient and applies those samples across the title bar, activity bar, side bar, panel, status bar, buttons, borders, and optional editor accents.
 
-## Use
+## How To Use
+
+1. Install Camaleone in VS Code or Cursor.
+2. Open the Command Palette with `Cmd+Shift+P` on macOS or `Ctrl+Shift+P` on Windows and Linux.
+3. Run `Camaleone: Open Color Picker`.
+4. Choose a `Start color` and `End color`, or click `Surprise me` to generate a palette.
+5. Leave `Sober` enabled for a restrained window identity, or turn it off for a fuller palette across the workbench.
+6. Choose whether to apply the colors to `Workspace settings` or `Global settings`.
+7. Use `Customize` to tune individual surfaces such as the title bar, activity bar, side bar, panel, status bar, buttons, and editor accents. Surface changes apply automatically; `Revert` returns a surface to the generated palette color.
+8. Click `Apply colors` to write the current palette.
+9. Click `Save as favourite...` to store a palette, then use `Apply favourite` to reapply it later.
+10. Use `Restore previous` to return to the colors Camaleone replaced, or `Reset IDE defaults` to remove Camaleone-managed colors.
+
+## Local Development
 
 1. Open this folder in VS Code or Cursor.
 2. Press `F5` and choose the `Run Extension` launch configuration. This starts a clean Extension Development Host with a separate user-data directory and an empty extensions directory, so unrelated installed extensions cannot crash the test window.

@@ -812,6 +812,17 @@ test("save favourite placeholder uses the requested example name", () => {
   assert.equal(source.includes("Bruno Blue"), false);
 });
 
+test("README includes marketplace how-to-use instructions", () => {
+  const readme = textFile("README.md");
+  assert.ok(readme.includes("## How To Use"));
+  assert.ok(readme.includes("Install Camaleone in VS Code or Cursor."));
+  assert.ok(readme.includes("Run `Camaleone: Open Color Picker`."));
+  assert.ok(readme.includes("Click `Apply colors` to write the current palette."));
+  assert.ok(readme.includes("Click `Save as favourite...` to store a palette"));
+  assert.ok(readme.includes("Use `Restore previous`"));
+  assert.ok(readme.indexOf("## How To Use") < readme.indexOf("## Local Development"));
+});
+
 test("webview script is syntactically valid after state injection", () => {
   const html = testApi.getPickerHtml({ cspSource: "vscode-webview:" }, {
     ...testApi.DEFAULT_CHOICES,
