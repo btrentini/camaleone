@@ -3,4 +3,5 @@
 node_modules/**
 test/**
 .vscode-test/**
+DEVELOPMENT.md
 *.vsix
