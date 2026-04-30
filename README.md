@@ -24,10 +24,41 @@ It is built for people who work across many projects and want a fast visual cue 
 
 ## Marketplace Screenshots
 
-|  |  |  |  |  |
-| --- | --- | --- | --- | --- |
-| [![Camaleone color picker with a blue and green workspace palette](https://i.postimg.cc/1X6mLPVV/camaleone-0.png)](https://postimg.cc/ctxGnpmd) | [![Camaleone sober mode example](https://i.postimg.cc/9XqQ4Pgf/camaleone-1.png)](https://postimg.cc/YjMHZFHc) | [![Camaleone custom surface controls](https://i.postimg.cc/VsbkS9ZS/camaleone-2.png)](https://postimg.cc/w3gpZNpH) | [![Camaleone favourite palette workflow](https://i.postimg.cc/fW0R37qk/camaleone-3.png)](https://postimg.cc/Bt40kF0G) | [![Camaleone warm palette example](https://i.postimg.cc/Pf85LbVJ/camaleone-4.png)](https://postimg.cc/3WYTVGTQ) |
-| [![Camaleone cool palette example](https://i.postimg.cc/65J5C7Fr/camaleone-5.png)](https://postimg.cc/t7kjjgqJ) | [![Camaleone panel and status color example](https://i.postimg.cc/m2f27cKw/camaleone-6.png)](https://postimg.cc/jCcbbjxw) | [![Camaleone full picker layout example](https://i.postimg.cc/X7S79Ztg/camaleone-7.png)](https://postimg.cc/14BQQzmg) | [![Camaleone panel and status color example](https://i.postimg.cc/4NkNpKjw/camaleone-8.png)](https://postimg.cc/kDsmm5Jt) | [![Camaleone full picker layout example](https://i.postimg.cc/65J5C7D9/camaleone-9.png)](https://postimg.cc/Th066PdS) |
+Click any image to open the Camaleone website.
+
+[![Camaleone animated walkthrough showing the picker, preview, customization, presets, and saved favourites](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-feature-flow.gif)](https://trentini.fyi/camaleone/)
+
+<table>
+  <tr>
+    <td colspan="4">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-2.png" alt="Camaleone marketplace hero showing the Oxford preset dropdown, blue workbench accents, and generated palette preview" width="100%">
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td width="25%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-1.png" alt="Camaleone orange and cyan palette with custom surface controls and options" width="100%">
+      </a>
+    </td>
+    <td width="25%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-3.png" alt="Camaleone green and white palette with the native color picker open" width="100%">
+      </a>
+    </td>
+    <td width="25%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-4.png" alt="Camaleone red and yellow palette with the native color picker open" width="100%">
+      </a>
+    </td>
+    <td width="25%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-5.png" alt="Camaleone muted yellow and blue palette with the save favourite dialog open" width="100%">
+      </a>
+    </td>
+  </tr>
+</table>
 
 ## How To Use
 
@@ -65,3 +96,5 @@ Secondary commands:
 - `Camaleone: Surprise Me`
 - `Camaleone: Save Current Colors as Favourite`
 - `Camaleone: Apply Favourite Colors`
+
+[Get in touch](https://trentini.fyi/camaleone/) | [Buy me a coffee](https://trentini.fyi/camaleone/#support)
