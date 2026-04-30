@@ -275,7 +275,7 @@ test("button text contrasts with selected button and side bar colors", () => {
 
   assert.equal(darkButtons["button.background"], "#000000");
   assert.equal(darkButtons["button.foreground"], "#ffffff");
-  assert.equal(darkButtons["button.secondaryBackground"], darkButtons["sideBar.background"]);
+  assert.equal(darkButtons["sideBar.background"], `${darkButtons["button.secondaryBackground"]}94`);
   assert.equal(darkButtons["button.secondaryForeground"], "#ffffff");
   assert.equal(darkButtons["activityBarBadge.foreground"], "#ffffff");
 
@@ -289,12 +289,12 @@ test("button text contrasts with selected button and side bar colors", () => {
 
   assert.equal(lightButtons["button.background"], "#ffffff");
   assert.equal(lightButtons["button.foreground"], "#000000");
-  assert.equal(lightButtons["button.secondaryBackground"], lightButtons["sideBar.background"]);
+  assert.equal(lightButtons["sideBar.background"], `${lightButtons["button.secondaryBackground"]}94`);
   assert.equal(lightButtons["button.secondaryForeground"], "#000000");
   assert.equal(lightButtons["activityBarBadge.foreground"], "#000000");
 });
 
-test("side bar stays neutral unless it is customized", () => {
+test("non-sober side bar uses translucent palette colors", () => {
   resetState();
   vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
 
@@ -304,8 +304,10 @@ test("side bar stays neutral unless it is customized", () => {
     intensity: 100
   }));
 
-  assert.equal(generated["sideBar.background"], "#1e1e1e");
-  assert.equal(generated["button.secondaryBackground"], "#1e1e1e");
+  assert.match(generated["sideBar.background"], /^#[0-9a-f]{8}$/);
+  assert.equal(generated["sideBar.background"].slice(-2), "94");
+  assert.notEqual(generated["sideBar.background"].slice(0, 7), "#1e1e1e");
+  assert.equal(generated["button.secondaryBackground"], generated["sideBar.background"].slice(0, 7));
 
   const customized = testApi.createColorCustomizations(nonSoberChoices({
     startColor: "#3366cc",
@@ -317,10 +319,12 @@ test("side bar stays neutral unless it is customized", () => {
   }));
 
   assert.notEqual(customized["sideBar.background"], "#1e1e1e");
-  assert.equal(customized["button.secondaryBackground"], customized["sideBar.background"]);
+  assert.match(customized["sideBar.background"], /^#[0-9a-f]{8}$/);
+  assert.equal(customized["sideBar.background"].slice(-2), "94");
+  assert.equal(customized["button.secondaryBackground"], customized["sideBar.background"].slice(0, 7));
 });
 
-test("surprise palettes keep the side bar neutral", () => {
+test("default sober surprise palettes keep the side bar neutral", () => {
   resetState();
   const palette = testApi.createSurprisePalette();
   const colors = testApi.createColorCustomizations({
@@ -333,6 +337,22 @@ test("surprise palettes keep the side bar neutral", () => {
   });
 
   assert.equal(colors["sideBar.background"], "#1e1e1e");
+});
+
+test("non-sober surprise palettes use a translucent side bar", () => {
+  resetState();
+  const palette = testApi.createSurprisePalette();
+  const colors = testApi.createColorCustomizations(nonSoberChoices({
+    startColor: palette.startColor,
+    endColor: palette.endColor,
+    colorRelationship: palette.relationship,
+    panelHarmony: palette.relationship,
+    surfaceOverrides: {}
+  }));
+
+  assert.match(colors["sideBar.background"], /^#[0-9a-f]{8}$/);
+  assert.equal(colors["sideBar.background"].slice(-2), "94");
+  assert.notEqual(colors["sideBar.background"].slice(0, 7), "#1e1e1e");
 });
 
 test("monochromatic mode uses harmony colors instead of a straight gradient", () => {
@@ -776,11 +796,18 @@ test("save favourite placeholder uses the requested example name", () => {
 });
 
 test("webview script is syntactically valid after state injection", () => {
-  const source = textFile("extension.js");
-  const match = source.match(/<script nonce="\$\{nonce\}">([\s\S]*?)<\/script>/);
+  const html = testApi.getPickerHtml({ cspSource: "vscode-webview:" }, {
+    ...testApi.DEFAULT_CHOICES,
+    favorites: [],
+    surfaces: testApi.SURFACE_CONFIGS,
+    defaultChoices: testApi.DEFAULT_CHOICES,
+    baseColor: "#1e1e1e",
+    hasWorkspace: true,
+    pickerIcons: {}
+  });
+  const match = html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/);
   assert.ok(match, "webview script should exist");
-  const script = match[1].replace("const state = ${safeState};", "const state = {};");
-  new Function(script);
+  new Function(match[1]);
 });
 
 test("debug configuration isolates the extension without suppressing warnings", () => {

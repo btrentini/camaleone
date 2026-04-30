@@ -4,6 +4,7 @@ const EXTENSION_PREFIX = "camaleone";
 
 const LAST_CHOICES_KEY = `${EXTENSION_PREFIX}.lastChoices`;
 const FAVORITES_KEY = `${EXTENSION_PREFIX}.favorites`;
+const SIDE_BAR_BACKGROUND_ALPHA = 0.58;
 
 const EXTENSION_COLOR_KEYS = [
   "activityBar.background",
@@ -1107,9 +1108,6 @@ function createColorCustomizations(choices) {
     if (!config) {
       return sample(0.5);
     }
-    if (id === "sideBar" && !overrides[id]) {
-      return "#1e1e1e";
-    }
     const source = overrides[id] || generatedSurfaceColor(config.sample);
     return blendColor(base, source, blendAmount(config.strength));
   };
@@ -1121,6 +1119,8 @@ function createColorCustomizations(choices) {
   const title = surface("titleBar");
   const activity = surface("activityBar");
   const side = surface("sideBar");
+  const sideBackground = withAlpha(side, SIDE_BAR_BACKGROUND_ALPHA);
+  const sideForeground = contrastColor(side);
   const panel = surface("panel");
   const status = surface("statusBar");
   const buttons = surface("buttons");
@@ -1163,11 +1163,11 @@ function createColorCustomizations(choices) {
     "list.inactiveSelectionBackground": withAlpha(panel, 0.28),
     "panel.border": panel,
     "panelTitle.activeBorder": panel,
-    "sideBar.background": side,
-    "sideBar.foreground": contrastColor(side),
+    "sideBar.background": sideBackground,
+    "sideBar.foreground": sideForeground,
     "sideBarSectionHeader.background": withAlpha(panel, 0.22),
-    "sideBarSectionHeader.foreground": contrastColor(side),
-    "sideBarTitle.foreground": contrastColor(side),
+    "sideBarSectionHeader.foreground": sideForeground,
+    "sideBarTitle.foreground": sideForeground,
     "statusBar.background": status,
     "statusBar.debuggingBackground": panel,
     "statusBar.foreground": contrastColor(status),
@@ -2015,6 +2015,7 @@ function getPickerHtml(webview, state) {
     const surfaceControlMap = new Map();
     const surfacePreviewMap = new Map();
     let favorites = Array.isArray(state.favorites) ? state.favorites : [];
+    const sideBarBackgroundAlpha = ${SIDE_BAR_BACKGROUND_ALPHA};
     let applyTimer;
 
     function initialize() {
@@ -2219,7 +2220,7 @@ function getPickerHtml(webview, state) {
       for (const surface of surfaces) {
         const control = surfaceControlMap.get(surface.id);
         const normalized = normalizeHex(overrides[surface.id]);
-        const generated = getGeneratedSurfaceColors({}, true)[surface.id] || state.defaultChoices.startColor;
+        const generated = solidHex(getGeneratedSurfaceColors({}, true)[surface.id]) || state.defaultChoices.startColor;
         control.checkbox.checked = true;
         control.checkbox.dataset.custom = normalized ? "true" : "false";
         control.color.value = normalized || generated;
@@ -2309,6 +2310,33 @@ function getPickerHtml(webview, state) {
         g: start.g + (end.g - start.g) * ratio,
         b: start.b + (end.b - start.b) * ratio
       });
+    }
+
+    function withAlpha(hex, alpha) {
+      const normalized = normalizeHex(hex) || "#000000";
+      const alphaHex = Math.max(0, Math.min(255, Math.round(Math.max(0, Math.min(1, alpha)) * 255)))
+        .toString(16)
+        .padStart(2, "0");
+      return normalized + alphaHex;
+    }
+
+    function solidHex(hex) {
+      const normalized = normalizeHex(hex);
+      if (normalized) {
+        return normalized;
+      }
+      const match = /^#([0-9a-fA-F]{8})$/.exec(String(hex || "").trim());
+      return match ? ("#" + match[1].slice(0, 6)).toLowerCase() : undefined;
+    }
+
+    function effectivePreviewColor(hex, baseHex) {
+      const solid = solidHex(hex) || "#000000";
+      const match = /^#([0-9a-fA-F]{8})$/.exec(String(hex || "").trim());
+      if (!match) {
+        return solid;
+      }
+      const alpha = parseInt(match[1].slice(6, 8), 16) / 255;
+      return mix(baseHex, solid, alpha);
     }
 
     function contrast(hex) {
@@ -2415,16 +2443,13 @@ function getPickerHtml(webview, state) {
         }
 
         const hasCustomOverride = !ignoreCustom && overrides[surface.id];
-        if (surface.id === "sideBar" && !hasCustomOverride) {
-          colors[surface.id] = "#1e1e1e";
-          continue;
-        }
 
         const generated = monochromatic
           ? harmonyColor(start, surface.sample, harmonyMode)
           : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
         const source = hasCustomOverride ? overrides[surface.id] : generated;
-        colors[surface.id] = mix(base, source, Math.max(0, Math.min(1, intensity * surface.strength)));
+        const color = mix(base, source, Math.max(0, Math.min(1, intensity * surface.strength)));
+        colors[surface.id] = surface.id === "sideBar" ? withAlpha(color, sideBarBackgroundAlpha) : color;
       }
 
       return colors;
@@ -2434,6 +2459,7 @@ function getPickerHtml(webview, state) {
       const start = normalizeHex(elements.startText.value) || elements.startColor.value;
       const end = normalizeHex(elements.endText.value) || elements.endColor.value;
       const colors = getGeneratedSurfaceColors();
+      const base = state.baseColor || "#1e1e1e";
       document.body.style.setProperty("--start", start);
       document.body.style.setProperty("--end", !elements.sober.checked && elements.monochromatic.checked ? harmonyColor(start, 1, selectedHarmonyRelationship()) : end);
       elements.intensityValue.textContent = elements.intensity.value + "%";
@@ -2442,10 +2468,11 @@ function getPickerHtml(webview, state) {
         const control = surfaceControlMap.get(surface.id);
         const preview = surfacePreviewMap.get(surface.id);
         const color = colors[surface.id] || start;
+        const controlColor = solidHex(color) || start;
 
         if (control && (!control.checkbox.checked || control.checkbox.dataset.custom !== "true")) {
-          control.color.value = color;
-          control.text.value = color;
+          control.color.value = controlColor;
+          control.text.value = controlColor;
           control.color.disabled = !control.checkbox.checked;
           control.text.disabled = !control.checkbox.checked;
         }
@@ -2455,7 +2482,7 @@ function getPickerHtml(webview, state) {
 
         if (preview) {
           preview.preview.style.background = color;
-          preview.preview.style.color = contrast(color);
+          preview.preview.style.color = contrast(effectivePreviewColor(color, base));
           preview.hex.textContent = color;
         }
       }
