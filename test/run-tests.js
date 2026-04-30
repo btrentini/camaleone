@@ -700,7 +700,7 @@ test("manifest and generated icon assets use the organized paths", () => {
 
 test("save favourite placeholder uses the requested example name", () => {
   const source = textFile("extension.js");
-  assert.ok(source.includes("Bruno Brown Chicken Brown Cow"));
+  assert.ok(source.includes("e.g., 'Bruno Brown Chicken Bron Cow'"));
   assert.equal(source.includes("Bruno Blue"), false);
 });
 
