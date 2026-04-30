@@ -1,10 +1,17 @@
 # Camaleone
 
-Color for IDE windows. Better than Peacock: gradients, sober mode, presets, favourites, per-surface controls, and restore.
-
-Camaleone is a VS Code and Cursor extension that gives each window more personality, with gradient-inspired treatment, high customization, and presets with the colours of Magnificent 7 companies and the top 10 universities in the world.
+Camaleone is a VS Code and Cursor extension that gives each IDE workspace more personality with gradient-inspired treatment, high customization, and presets with the colours of Magnificent 7 companies and the top 10 universities in the world.
 
 VS Code's supported workbench color API accepts individual color values. Camaleone samples a start-to-end gradient and applies those samples across the title bar, activity bar, side bar, panel, status bar, buttons, borders, and optional editor accents.
+
+## Website And Install
+
+- Website: [trentini.fyi/camaleone](https://trentini.fyi/camaleone/)
+- VS Code Marketplace: [trentinium.camaleone](https://marketplace.visualstudio.com/items?itemName=trentinium.camaleone)
+- Open VSX: [trentinium/camaleone](https://open-vsx.org/extension/trentinium/camaleone)
+- Source: [github.com/btrentini/camaleone](https://github.com/btrentini/camaleone)
+
+The website includes the animated feature walkthrough, current marketplace screenshots, user notes, and support links. README media is intentionally loaded from the live website so marketplace pages and GitHub always show the current visuals published on `github-pages`.
 
 ## Marketplace Description
 
@@ -14,47 +21,58 @@ Pick a start and end color, generate palettes with `Surprise me`, keep the resul
 
 It is built for people who work across many projects and want a fast visual cue for each window. Save favourite palettes, apply them again later, restore the colors Camaleone replaced, or reset cleanly to IDE defaults whenever you need to.
 
+## Feature Highlights
+
+- Gradient-inspired workbench identity without installing or switching full themes.
+- Sober mode for restrained color on high-signal surfaces.
+- Per-surface customization for title bar, activity bar, side bar, panel, status bar, buttons, borders, and editor accents.
+- Built-in presets for Magnificent 7 companies and QS 2026 top universities.
+- Favourite palettes for reusable workspace identities.
+- Clean restore and reset commands for returning to previous colors or IDE defaults.
+
 ## What Users Say
 
-> "Way better than Peacock!"
+> "Loving it! Installed and in use!!"
 >
-> "It's now so much easier to switch contexts."
+> "easy to use. great interface"
 >
-> "It's just beautiful."
+> "Way Better than Peacock!"
 >
-> "Simple to use."
+> "It's just beautiful"
 
 ## Marketplace Screenshots
 
-Click a screenshot to open the full-size GitHub-hosted image.
+Click any image to open the Camaleone website. These images are loaded from `https://trentini.fyi/camaleone/`.
+
+[![Camaleone animated walkthrough showing the picker, preview, customization, presets, and saved favourites](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-feature-flow.gif)](https://trentini.fyi/camaleone/)
 
 <table>
   <tr>
     <td colspan="4">
-      <a href="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-2.png">
-        <img src="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-2.png" alt="Camaleone marketplace hero showing the Oxford preset dropdown, blue workbench accents, and generated palette preview" width="100%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-2.png" alt="Camaleone marketplace hero showing the Oxford preset dropdown, blue workbench accents, and generated palette preview" width="100%">
       </a>
     </td>
   </tr>
   <tr>
     <td width="25%">
-      <a href="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-1.png">
-        <img src="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-1.png" alt="Camaleone orange and cyan palette with custom surface controls and options" width="100%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-1.png" alt="Camaleone orange and cyan palette with custom surface controls and options" width="100%">
       </a>
     </td>
     <td width="25%">
-      <a href="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-3.png">
-        <img src="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-3.png" alt="Camaleone green and white palette with the native color picker open" width="100%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-3.png" alt="Camaleone green and white palette with the native color picker open" width="100%">
       </a>
     </td>
     <td width="25%">
-      <a href="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-4.png">
-        <img src="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-4.png" alt="Camaleone red and yellow palette with the native color picker open" width="100%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-4.png" alt="Camaleone red and yellow palette with the native color picker open" width="100%">
       </a>
     </td>
     <td width="25%">
-      <a href="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-5.png">
-        <img src="https://raw.githubusercontent.com/btrentini/camaleone/main/assets/screenshots/marketplace/camaleone-v04-5.png" alt="Camaleone muted yellow and blue palette with the save favourite dialog open" width="100%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-5.png" alt="Camaleone muted yellow and blue palette with the save favourite dialog open" width="100%">
       </a>
     </td>
   </tr>
@@ -96,3 +114,5 @@ Secondary commands:
 - `Camaleone: Surprise Me`
 - `Camaleone: Save Current Colors as Favourite`
 - `Camaleone: Apply Favourite Colors`
+
+[Get in touch](https://trentini.fyi/camaleone/) | [Buy me a coffee](https://trentini.fyi/camaleone/#support)
