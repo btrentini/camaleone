@@ -939,6 +939,7 @@ test("README includes marketplace how-to-use instructions", () => {
   assert.ok(readme.includes("## How To Use"));
   assert.ok(readme.includes("Install Camaleone in VS Code or Cursor."));
   assert.ok(readme.includes("Run `Camaleone: Open Color Picker`."));
+  assert.ok(readme.includes("This is the main command, and it opens the Camaleone customization interface."));
   assert.ok(readme.includes("Click `Apply colors` to write the current palette."));
   assert.ok(readme.includes("Click `Save as favourite...` to store a palette"));
   assert.ok(readme.includes("choose it from the favourites list to apply it later"));
@@ -954,6 +955,9 @@ test("README includes marketplace project description and feature copy", () => {
   assert.ok(readme.includes("customize individual surfaces"));
   assert.ok(readme.includes("Save favourite palettes"));
   assert.ok(readme.includes("> \"It's way better than other solutions like Peacock.\""));
+  assert.ok(readme.includes("Main command:"));
+  assert.ok(readme.includes("Secondary commands:"));
+  assert.ok(readme.includes("opens the customization interface for choosing colors"));
   assert.ok(readme.indexOf("## Marketplace Description") < readme.indexOf("## How To Use"));
 });
 
