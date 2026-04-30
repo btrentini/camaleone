@@ -51,6 +51,7 @@ Warnings such as `DEP0040` for `punycode` or `ExperimentalWarning: SQLite is an 
 
 - Workspace mode writes generated `workbench.colorCustomizations` to `.vscode/settings.json`.
 - Global mode writes generated `workbench.colorCustomizations` to your user settings.
+- Sober mode is on by default, keeping most surfaces neutral while tinting the title bar, activity bar, and status bar.
 - Manual is the default colour relationship, with a tighter title/activity/panel ramp before the end color reaches the status bar.
 - The side bar stays at `#1e1e1e` unless you customize the Side Bar surface directly; `Surprise Me` keeps that neutral side bar.
 - The extension does not use CUDA, Metal, WebGPU, or any GPU runtime. By default, applying a gradient only persists the generated workbench colors; set `camaleone.persistChoices` to `true` if you also want the chosen gradient values written into settings.

@@ -130,6 +130,14 @@ function textFile(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 }
 
+function nonSoberChoices(overrides = {}) {
+  return {
+    ...testApi.DEFAULT_CHOICES,
+    sober: false,
+    ...overrides
+  };
+}
+
 test("activates Camaleone commands", () => {
   resetState();
   extension.activate({
@@ -174,6 +182,7 @@ test("sanitizes invalid choices and preserves defaults", () => {
   assert.equal(choices.applyTo, "global");
   assert.equal(choices.includeEditorAccent, true);
   assert.equal(choices.monochromatic, true);
+  assert.equal(choices.sober, true);
   assert.equal(choices.colorRelationship, "manual");
   assert.equal(choices.panelHarmony, "complementary");
   assert.deepEqual(choices.surfaceOverrides, { titleBar: "#ff00ff" });
@@ -182,6 +191,7 @@ test("sanitizes invalid choices and preserves defaults", () => {
 test("defaults use manual relationship with compact title activity and panel samples", () => {
   assert.equal(testApi.DEFAULT_CHOICES.colorRelationship, "manual");
   assert.equal(testApi.DEFAULT_CHOICES.panelHarmony, "manual");
+  assert.equal(testApi.DEFAULT_CHOICES.sober, true);
 
   const samples = Object.fromEntries(testApi.SURFACE_CONFIGS.map((surface) => [surface.id, surface.sample]));
   assert.equal(samples.titleBar, 0);
@@ -195,16 +205,14 @@ test("intensity affects custom surface overrides", () => {
   resetState();
   vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
 
-  const full = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  const full = testApi.createColorCustomizations(nonSoberChoices({
     intensity: 100,
     surfaceOverrides: { titleBar: "#ff0000" }
-  });
-  const muted = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  }));
+  const muted = testApi.createColorCustomizations(nonSoberChoices({
     intensity: 50,
     surfaceOverrides: { titleBar: "#ff0000" }
-  });
+  }));
 
   assert.equal(full["titleBar.activeBackground"], "#ff0000");
   assert.notEqual(muted["titleBar.activeBackground"], "#ff0000");
@@ -215,11 +223,10 @@ test("top command center text contrasts with selected title bar color", () => {
   resetState();
   vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
 
-  const darkTitle = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  const darkTitle = testApi.createColorCustomizations(nonSoberChoices({
     intensity: 100,
     surfaceOverrides: { titleBar: "#000000" }
-  });
+  }));
   assert.equal(darkTitle["titleBar.activeBackground"], "#000000");
   assert.equal(darkTitle["titleBar.activeForeground"], "#ffffff");
   assert.equal(darkTitle["commandCenter.background"], "#000000");
@@ -227,11 +234,10 @@ test("top command center text contrasts with selected title bar color", () => {
   assert.equal(darkTitle["commandCenter.activeForeground"], "#ffffff");
   assert.match(darkTitle["commandCenter.activeBackground"], /^#[0-9a-f]{6}$/);
 
-  const lightTitle = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  const lightTitle = testApi.createColorCustomizations(nonSoberChoices({
     intensity: 100,
     surfaceOverrides: { titleBar: "#ffffff" }
-  });
+  }));
   assert.equal(lightTitle["titleBar.activeBackground"], "#ffffff");
   assert.equal(lightTitle["titleBar.activeForeground"], "#000000");
   assert.equal(lightTitle["commandCenter.background"], "#ffffff");
@@ -242,14 +248,13 @@ test("button text contrasts with selected button and side bar colors", () => {
   resetState();
   vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
 
-  const darkButtons = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  const darkButtons = testApi.createColorCustomizations(nonSoberChoices({
     intensity: 100,
     surfaceOverrides: {
       buttons: "#000000",
       sideBar: "#000000"
     }
-  });
+  }));
 
   assert.equal(darkButtons["button.background"], "#000000");
   assert.equal(darkButtons["button.foreground"], "#ffffff");
@@ -257,14 +262,13 @@ test("button text contrasts with selected button and side bar colors", () => {
   assert.equal(darkButtons["button.secondaryForeground"], "#ffffff");
   assert.equal(darkButtons["activityBarBadge.foreground"], "#ffffff");
 
-  const lightButtons = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  const lightButtons = testApi.createColorCustomizations(nonSoberChoices({
     intensity: 100,
     surfaceOverrides: {
       buttons: "#ffffff",
       sideBar: "#ffffff"
     }
-  });
+  }));
 
   assert.equal(lightButtons["button.background"], "#ffffff");
   assert.equal(lightButtons["button.foreground"], "#000000");
@@ -277,25 +281,23 @@ test("side bar stays neutral unless it is customized", () => {
   resetState();
   vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
 
-  const generated = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  const generated = testApi.createColorCustomizations(nonSoberChoices({
     startColor: "#3366cc",
     endColor: "#cc6633",
     intensity: 100
-  });
+  }));
 
   assert.equal(generated["sideBar.background"], "#1e1e1e");
   assert.equal(generated["button.secondaryBackground"], "#1e1e1e");
 
-  const customized = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  const customized = testApi.createColorCustomizations(nonSoberChoices({
     startColor: "#3366cc",
     endColor: "#cc6633",
     intensity: 100,
     surfaceOverrides: {
       sideBar: "#ffffff"
     }
-  });
+  }));
 
   assert.notEqual(customized["sideBar.background"], "#1e1e1e");
   assert.equal(customized["button.secondaryBackground"], customized["sideBar.background"]);
@@ -318,19 +320,17 @@ test("surprise palettes keep the side bar neutral", () => {
 
 test("monochromatic mode uses harmony colors instead of a straight gradient", () => {
   resetState();
-  const gradient = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  const gradient = testApi.createColorCustomizations(nonSoberChoices({
     startColor: "#3366cc",
     endColor: "#cc6633",
     monochromatic: false
-  });
-  const mono = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  }));
+  const mono = testApi.createColorCustomizations(nonSoberChoices({
     startColor: "#3366cc",
     endColor: "#cc6633",
     monochromatic: true,
     panelHarmony: "complementary"
-  });
+  }));
 
   assert.notEqual(mono["statusBar.background"], gradient["statusBar.background"]);
   assert.match(mono["statusBar.background"], /^#[0-9a-f]{6}$/);
@@ -338,20 +338,18 @@ test("monochromatic mode uses harmony colors instead of a straight gradient", ()
 
 test("color relationship changes the palette path without replacing selected colors", () => {
   resetState();
-  const manual = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  const manual = testApi.createColorCustomizations(nonSoberChoices({
     startColor: "#3366cc",
     endColor: "#cc6633",
     colorRelationship: "manual",
     monochromatic: false
-  });
-  const complementary = testApi.createColorCustomizations({
-    ...testApi.DEFAULT_CHOICES,
+  }));
+  const complementary = testApi.createColorCustomizations(nonSoberChoices({
     startColor: "#3366cc",
     endColor: "#cc6633",
     colorRelationship: "complementary",
     monochromatic: false
-  });
+  }));
 
   assert.equal(complementary["titleBar.activeBackground"], "#3366cc");
   assert.equal(complementary["statusBar.background"], "#cc6633");
@@ -397,6 +395,7 @@ test("IDE default picker state uses equal active-theme colors", () => {
   assert.equal(darkChoices.startColor, "#1e1e1e");
   assert.equal(darkChoices.endColor, "#1e1e1e");
   assert.equal(darkChoices.applyTo, "global");
+  assert.equal(darkChoices.sober, true);
   assert.deepEqual(darkChoices.surfaceOverrides, {});
   assert.equal(darkColors["titleBar.activeBackground"], "#1e1e1e");
   assert.equal(darkColors["statusBar.background"], "#1e1e1e");
@@ -407,6 +406,7 @@ test("IDE default picker state uses equal active-theme colors", () => {
   assert.equal(lightChoices.startColor, "#f3f3f3");
   assert.equal(lightChoices.endColor, "#f3f3f3");
   assert.equal(lightChoices.applyTo, "workspace");
+  assert.equal(lightChoices.sober, true);
 });
 
 test("surprise palette returns valid distinct colors and relationship metadata", () => {
@@ -430,13 +430,12 @@ test("applying colors only updates extension state and workbench color customiza
     "editorRuler.foreground": "#123456"
   });
 
-  await testApi.applyColors(context, {
-    ...testApi.DEFAULT_CHOICES,
+  await testApi.applyColors(context, nonSoberChoices({
     startColor: "#112233",
     endColor: "#445566",
     applyTo: "workspace",
     surfaceOverrides: { titleBar: "#336699" }
-  });
+  }));
 
   const updatedColors = configValues.get("workbench.colorCustomizations");
   assert.equal(updatedColors["editorRuler.foreground"], "#123456");
@@ -495,13 +494,12 @@ test("restore previous can return to colors removed by reset to default", async 
     "editorRuler.foreground": "#123456"
   });
 
-  await testApi.applyColors(context, {
-    ...testApi.DEFAULT_CHOICES,
+  await testApi.applyColors(context, nonSoberChoices({
     startColor: "#112233",
     endColor: "#445566",
     applyTo: "workspace",
     surfaceOverrides: { titleBar: "#336699" }
-  });
+  }));
 
   const appliedColors = { ...configValues.get("workbench.colorCustomizations") };
   await testApi.resetWorkbenchDefaults(context, target);
@@ -679,6 +677,7 @@ test("picker html contains the simplified workflow controls", () => {
 test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
   assert.equal(manifest.icon, "assets/icons/store/camaleone.png");
+  assert.equal(manifest.contributes.configuration.properties["camaleone.sober"].default, true);
 
   for (const relativePath of [
     "assets/icons/store/camaleone.png",

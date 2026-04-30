@@ -118,7 +118,7 @@ const DEFAULT_CHOICES = {
   applyTo: "workspace",
   includeEditorAccent: false,
   monochromatic: false,
-  sober: false,
+  sober: true,
   colorRelationship: "manual",
   panelHarmony: "manual",
   surfaceOverrides: {}
@@ -135,7 +135,7 @@ function createIdeDefaultChoices(options = {}) {
     applyTo: options.applyTo === "global" ? "global" : DEFAULT_CHOICES.applyTo,
     includeEditorAccent: false,
     monochromatic: false,
-    sober: false,
+    sober: DEFAULT_CHOICES.sober,
     colorRelationship: "manual",
     panelHarmony: "manual",
     surfaceOverrides: {}
@@ -309,7 +309,6 @@ async function surpriseMeCommand(context) {
     startColor: palette.startColor,
     endColor: palette.endColor,
     monochromatic: false,
-    sober: false,
     colorRelationship: palette.relationship,
     panelHarmony: palette.relationship,
     surfaceOverrides: {}
@@ -543,7 +542,7 @@ function sanitizeChoices(options) {
     applyTo,
     includeEditorAccent: Boolean(options && options.includeEditorAccent),
     monochromatic: Boolean(options && options.monochromatic),
-    sober: Boolean(options && options.sober),
+    sober: options && options.sober !== undefined ? Boolean(options.sober) : DEFAULT_CHOICES.sober,
     colorRelationship: sanitizeColorRelationship(options && options.colorRelationship),
     panelHarmony: sanitizePanelHarmony(options && options.panelHarmony),
     surfaceOverrides: sanitizeSurfaceOverrides(options && options.surfaceOverrides)
@@ -2500,7 +2499,6 @@ function getPickerHtml(webview, state) {
       elements.startText.value = start;
       elements.endColor.value = end;
       elements.endText.value = end;
-      elements.sober.checked = false;
       elements.monochromatic.checked = false;
       elements.panelHarmony.value = complementary ? "complementary" : "analogous";
       clearSurfaceOverrides();

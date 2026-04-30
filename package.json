@@ -104,7 +104,7 @@
         },
         "camaleone.sober": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Keep most managed workbench surfaces at #1e1e1e while tinting only the title bar, activity bar, and status bar."
         },
         "camaleone.colorRelationship": {
