@@ -837,6 +837,10 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("--vscode-button-secondaryForeground"));
   assert.ok(html.includes("--vscode-sideBar-foreground"));
   assert.ok(html.includes("primary-action"));
+  assert.ok(html.includes("primary-apply-row"));
+  assert.ok(html.includes("colors-divider"));
+  assert.ok(html.includes("colors-secondary-row"));
+  assert.ok(html.includes("sober-toggle"));
   assert.ok(html.includes("options-grid"));
   assert.ok(html.includes("option-item"));
   assert.ok(html.includes("option-checkbox-group"));
@@ -881,6 +885,7 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes('elements.includeEditorAccent.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.sober.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.panelHarmony.addEventListener("change", () => updatePreviewAndApply(0));'));
+  assert.ok(html.includes('updatePreviewAndApply(0);'));
   assert.ok(html.includes('vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id });'));
   assert.equal(html.includes("Click Apply colors to write it."), false);
   assert.ok(html.includes("function scheduleApply(delay)"));
@@ -888,7 +893,9 @@ test("picker html contains the simplified workflow controls", () => {
   assert.equal(html.includes("getEffectiveEndColor"), false);
   assert.equal(html.includes("relatedEndColor"), false);
 
-  assert.ok(html.indexOf('id="surprise"') < html.indexOf('id="apply"'));
+  assert.ok(html.indexOf('id="apply"') < html.indexOf('class="colors-divider"'));
+  assert.ok(html.indexOf('class="colors-divider"') < html.indexOf('id="surprise"'));
+  assert.ok(html.indexOf('id="surprise"') < html.indexOf('id="sober"'));
 
   const customizeIndex = html.indexOf('<div class="customize-head">');
   const saveIndex = html.indexOf('id="saveFavorite"');

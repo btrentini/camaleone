@@ -1979,6 +1979,34 @@ function getPickerHtml(webview, state) {
       gap: 6px;
     }
 
+    .primary-apply-row {
+      display: grid;
+    }
+
+    .primary-apply-row button {
+      width: 100%;
+    }
+
+    .colors-divider {
+      height: 1px;
+      background: var(--vscode-panel-border);
+    }
+
+    .colors-secondary-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .sober-toggle {
+      justify-self: end;
+      min-height: 31px;
+      padding: 0 8px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+    }
+
     button {
       display: inline-flex;
       align-items: center;
@@ -2289,15 +2317,20 @@ function getPickerHtml(webview, state) {
             </div>
           </div>
 
-          <label class="checkbox-row">
-            <input id="sober" type="checkbox">
-            <span>Sober</span>
-          </label>
-
-          <div class="button-row">
-            <button id="surprise" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#10022;</span><span>Surprise me</span></button>
+          <div class="primary-apply-row">
             <button id="apply" class="primary-action" type="button"><span class="button-icon" aria-hidden="true">&#10003;</span><span>Apply colors</span></button>
           </div>
+
+          <div class="colors-divider" aria-hidden="true"></div>
+
+          <div class="colors-secondary-row">
+            <button id="surprise" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#10022;</span><span>Surprise me</span></button>
+            <label class="checkbox-row sober-toggle">
+              <input id="sober" type="checkbox">
+              <span>Sober</span>
+            </label>
+          </div>
+
           <div id="status" class="status" role="status"></div>
           <p id="surpriseNote" class="help"></p>
         </div>
@@ -3072,7 +3105,7 @@ function getPickerHtml(webview, state) {
       elements.surpriseNote.textContent = complementary
         ? "Generated a complementary color pair."
         : "Generated an analogous color pair.";
-      updatePreview();
+      updatePreviewAndApply(0);
     }
 
     /**
