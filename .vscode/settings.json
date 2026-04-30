@@ -1,0 +1,4 @@
+{
+  "gpu-monitor.binaryPath": "/bin/echo 'No NVIDIA GPU, 0 MiB, 0 MiB, 0, 0 %, 0 %, 0 MHz, 0 MHz' #",
+  "gpu-monitor.updateInterval": 600000
+}

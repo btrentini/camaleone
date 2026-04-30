@@ -1,0 +1,153 @@
+{
+  "name": "camaleone",
+  "displayName": "Camaleone",
+  "description": "Apply gradient-inspired workspace colors to VS Code and Cursor windows.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "license": "MIT",
+  "icon": "assets/icons/store/camaleone.png",
+  "engines": {
+    "vscode": "^1.87.0"
+  },
+  "categories": [
+    "Themes",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:camaleone.openPicker",
+    "onCommand:camaleone.quickApply",
+    "onCommand:camaleone.applyConfigured",
+    "onCommand:camaleone.clear",
+    "onCommand:camaleone.resetToDefault",
+    "onCommand:camaleone.surpriseMe",
+    "onCommand:camaleone.saveFavorite",
+    "onCommand:camaleone.applyFavorite"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "camaleone.openPicker",
+        "title": "Camaleone: Open Color Picker",
+        "category": "Camaleone"
+      },
+      {
+        "command": "camaleone.quickApply",
+        "title": "Camaleone: Quick Apply Without Webview",
+        "category": "Camaleone"
+      },
+      {
+        "command": "camaleone.applyConfigured",
+        "title": "Camaleone: Apply Configured Colors",
+        "category": "Camaleone"
+      },
+      {
+        "command": "camaleone.clear",
+        "title": "Camaleone: Restore Previous Colors",
+        "category": "Camaleone"
+      },
+      {
+        "command": "camaleone.resetToDefault",
+        "title": "Camaleone: Reset to IDE Defaults",
+        "category": "Camaleone"
+      },
+      {
+        "command": "camaleone.surpriseMe",
+        "title": "Camaleone: Surprise Me",
+        "category": "Camaleone"
+      },
+      {
+        "command": "camaleone.saveFavorite",
+        "title": "Camaleone: Save Current Colors as Favourite",
+        "category": "Camaleone"
+      },
+      {
+        "command": "camaleone.applyFavorite",
+        "title": "Camaleone: Apply Favourite Colors",
+        "category": "Camaleone"
+      }
+    ],
+    "configuration": {
+      "title": "Camaleone",
+      "properties": {
+        "camaleone.startColor": {
+          "type": "string",
+          "default": "#0ea5e9",
+          "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+          "description": "Start color for the workbench gradient."
+        },
+        "camaleone.endColor": {
+          "type": "string",
+          "default": "#f97316",
+          "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+          "description": "End color for the workbench gradient."
+        },
+        "camaleone.intensity": {
+          "type": "number",
+          "default": 100,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "How strongly the gradient colors are blended into the workbench."
+        },
+        "camaleone.applyTo": {
+          "type": "string",
+          "default": "workspace",
+          "enum": [
+            "workspace",
+            "global"
+          ],
+          "enumDescriptions": [
+            "Store colors in this workspace's settings.",
+            "Store colors in user settings for every window."
+          ],
+          "description": "Where Camaleone writes the generated color customizations."
+        },
+        "camaleone.includeEditorAccent": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also tint editor accent surfaces such as selection, line highlight, cursor, and links."
+        },
+        "camaleone.monochromatic": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use the start color as the base and derive panel colors from a harmony rule."
+        },
+        "camaleone.colorRelationship": {
+          "type": "string",
+          "default": "manual",
+          "enum": [
+            "manual",
+            "analogous",
+            "complementary"
+          ],
+          "description": "How the palette moves between the two selected colors."
+        },
+        "camaleone.panelHarmony": {
+          "type": "string",
+          "default": "analogous",
+          "enum": [
+            "analogous",
+            "complementary"
+          ],
+          "description": "Legacy color-theory rule used for panels when monochromatic mode is enabled."
+        },
+        "camaleone.surfaceOverrides": {
+          "type": "object",
+          "default": {},
+          "description": "Optional per-surface color overrides keyed by surface id."
+        },
+        "camaleone.persistChoices": {
+          "type": "boolean",
+          "default": false,
+          "description": "Persist the last chosen gradient values into settings. Disabled by default so applying colors only writes workbench color customizations."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --check extension.js && node test/run-tests.js",
+    "vscode:prepublish": "npm test",
+    "prepublishOnly": "npm test"
+  },
+  "devDependencies": {}
+}
