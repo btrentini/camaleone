@@ -1,3 +1,9 @@
+/**
+ * Camaleone VS Code/Cursor extension entry point.
+ *
+ * This file owns command registration, palette generation, favorite storage,
+ * workbench color patching, and the picker webview.
+ */
 const vscode = require("vscode");
 
 const EXTENSION_PREFIX = "camaleone";
@@ -6,6 +12,12 @@ const LAST_CHOICES_KEY = `${EXTENSION_PREFIX}.lastChoices`;
 const FAVORITES_KEY = `${EXTENSION_PREFIX}.favorites`;
 const SIDE_BAR_BACKGROUND_ALPHA = 0.58;
 
+/**
+ * Workbench color customization keys managed by Camaleone.
+ *
+ * Restore and reset operations only touch these keys so unrelated user theme
+ * customizations remain in place.
+ */
 const EXTENSION_COLOR_KEYS = [
   "activityBar.background",
   "activityBar.foreground",
@@ -60,6 +72,12 @@ const EXTENSION_COLOR_KEYS = [
   "editorLink.activeForeground"
 ];
 
+/**
+ * User-facing surfaces that the picker can preview and customize.
+ *
+ * The sample value is the position along the start-to-end palette, and strength
+ * controls how strongly the generated color is blended into the active theme.
+ */
 const SURFACE_CONFIGS = [
   {
     id: "titleBar",
@@ -112,6 +130,9 @@ const SURFACE_CONFIGS = [
   }
 ];
 
+/**
+ * Baseline picker state used for fresh installs, reset flows, and tests.
+ */
 const DEFAULT_CHOICES = {
   startColor: "#0ea5e9",
   endColor: "#f97316",
@@ -125,6 +146,9 @@ const DEFAULT_CHOICES = {
   surfaceOverrides: {}
 };
 
+/**
+ * Built-in editable presets exposed in the favorites list.
+ */
 const DEFAULT_FAVORITES = [
   defaultFavorite("magnificent-7-apple", "Apple", "#000000", "#a2aaad"),
   defaultFavorite("magnificent-7-microsoft", "Microsoft", "#f25022", "#00a4ef", {
@@ -153,6 +177,9 @@ const DEFAULT_FAVORITES = [
 
 let pickerPanel;
 
+/**
+ * Creates one built-in favorite entry using the same shape as saved favorites.
+ */
 function defaultFavorite(id, name, startColor, endColor, surfaceOverrides = {}) {
   return {
     ...DEFAULT_CHOICES,
@@ -169,6 +196,9 @@ function defaultFavorite(id, name, startColor, endColor, surfaceOverrides = {}) 
   };
 }
 
+/**
+ * Builds a neutral picker state that lets the active editor theme take over.
+ */
 function createIdeDefaultChoices(options = {}) {
   const baseColor = baseColorForTheme();
   return {
@@ -185,6 +215,9 @@ function createIdeDefaultChoices(options = {}) {
   };
 }
 
+/**
+ * Registers all extension commands when VS Code activates Camaleone.
+ */
 function activate(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand("camaleone.openPicker", () => openPicker(context)),
@@ -198,8 +231,16 @@ function activate(context) {
   );
 }
 
+/**
+ * VS Code deactivate hook. Camaleone has no long-lived disposables outside the
+ * subscriptions registered during activation.
+ */
 function deactivate() {}
 
+/**
+ * Opens the full webview picker and wires browser messages back to extension
+ * commands.
+ */
 async function openPicker(context) {
   if (pickerPanel) {
     pickerPanel.reveal(vscode.ViewColumn.One);
@@ -236,6 +277,7 @@ async function openPicker(context) {
       return;
     }
 
+    // Applying writes only generated workbench colors unless persistChoices is enabled.
     if (message.type === "apply") {
       try {
         const result = await applyColors(context, message);
@@ -250,6 +292,7 @@ async function openPicker(context) {
       postPickerStatus("ok", "Restored the previous Camaleone-tracked colors.");
     }
 
+    // Reset removes Camaleone-managed color keys and then refreshes local picker state.
     if (message.type === "resetDefault") {
       const targets = await resetIdeDefaults(context);
       const resetChoices = createIdeDefaultChoices({ applyTo: message.applyTo });
@@ -258,6 +301,7 @@ async function openPicker(context) {
       pickerPanel.webview.postMessage({ type: "resetLocal", choices: resetChoices });
     }
 
+    // Favorite actions round-trip through extension state so built-ins and saved overrides stay consistent.
     if (message.type === "saveFavorite") {
       try {
         const favorites = await saveFavorite(context, message);
@@ -288,6 +332,9 @@ async function openPicker(context) {
   }, null, context.subscriptions);
 }
 
+/**
+ * Sends a status line to the active picker if it is currently open.
+ */
 function postPickerStatus(level, text) {
   if (!pickerPanel) {
     return;
@@ -295,6 +342,10 @@ function postPickerStatus(level, text) {
   pickerPanel.webview.postMessage({ type: "status", level, text });
 }
 
+/**
+ * Runs a minimal native input flow for users who cannot or do not want to open
+ * the webview picker.
+ */
 async function quickApply(context) {
   const current = getCurrentChoices(context);
   const startColor = await vscode.window.showInputBox({
@@ -349,10 +400,16 @@ async function quickApply(context) {
   });
 }
 
+/**
+ * Applies the currently remembered/configured choices.
+ */
 async function applyConfigured(context) {
   await applyColorsWithMessage(context, getCurrentChoices(context));
 }
 
+/**
+ * Generates a random readable palette and applies it immediately.
+ */
 async function surpriseMeCommand(context) {
   const current = getCurrentChoices(context);
   const palette = createSurprisePalette();
@@ -367,6 +424,9 @@ async function surpriseMeCommand(context) {
   });
 }
 
+/**
+ * Saves the current choices as a named favorite from a command-palette flow.
+ */
 async function saveCurrentFavoriteCommand(context) {
   try {
     await saveFavorite(context, getCurrentChoices(context));
@@ -378,6 +438,9 @@ async function saveCurrentFavoriteCommand(context) {
   }
 }
 
+/**
+ * Lets users pick and apply a favorite without opening the webview picker.
+ */
 async function applyFavoriteCommand(context) {
   const favorites = getFavorites(context);
   if (!favorites.length) {
@@ -408,6 +471,9 @@ async function applyFavoriteCommand(context) {
   }
 }
 
+/**
+ * Applies colors and reports the outcome through VS Code notifications.
+ */
 async function applyColorsWithMessage(context, options) {
   try {
     const result = await applyColors(context, options);
@@ -419,6 +485,10 @@ async function applyColorsWithMessage(context, options) {
   }
 }
 
+/**
+ * Sanitizes incoming choices, generates workbench colors, and persists them to
+ * the requested target.
+ */
 async function applyColors(context, options) {
   const choices = sanitizeChoices(options);
   const target = resolveTarget(choices.applyTo);
@@ -434,6 +504,9 @@ async function applyColors(context, options) {
   };
 }
 
+/**
+ * Restores the colors that existed before Camaleone last patched a target.
+ */
 async function clearGradient(context, requestedTarget) {
   const target = requestedTarget ? resolveTarget(requestedTarget) : await pickTarget("Restore previous colors from which settings?", true);
 
@@ -461,6 +534,10 @@ async function clearGradient(context, requestedTarget) {
   );
 }
 
+/**
+ * Removes Camaleone-managed color customizations so the editor theme defaults
+ * become visible again.
+ */
 async function resetToDefault(context, requestedTarget) {
   if (!requestedTarget) {
     const targets = await resetIdeDefaults(context);
@@ -486,6 +563,10 @@ async function resetToDefault(context, requestedTarget) {
   vscode.window.showInformationMessage(`Camaleone reset ${target.label} generated colors to IDE defaults.`);
 }
 
+/**
+ * Resets every relevant target, preferring both workspace and global settings
+ * when a workspace exists.
+ */
 async function resetIdeDefaults(context) {
   const targets = getResetTargets();
 
@@ -496,6 +577,9 @@ async function resetIdeDefaults(context) {
   return targets;
 }
 
+/**
+ * Returns the settings scopes that can be reset in the current window.
+ */
 function getResetTargets() {
   const targets = [];
   if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length) {
@@ -505,6 +589,9 @@ function getResetTargets() {
   return targets;
 }
 
+/**
+ * Formats target labels for short user-facing status messages.
+ */
 function formatTargetLabels(targets) {
   const labels = targets.map((target) => target.label);
   if (labels.length <= 1) {
@@ -513,6 +600,9 @@ function formatTargetLabels(targets) {
   return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
 }
 
+/**
+ * Presents a target picker for workspace/global/both settings.
+ */
 async function pickTarget(placeHolder, includeBoth = false) {
   const hasWorkspace = Boolean(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length);
   const items = [
@@ -524,6 +614,9 @@ async function pickTarget(placeHolder, includeBoth = false) {
   return picked;
 }
 
+/**
+ * Merges remembered choices with explicit extension settings.
+ */
 function getCurrentChoices(context) {
   const config = vscode.workspace.getConfiguration();
   const remembered = context.globalState.get(LAST_CHOICES_KEY, {});
@@ -562,6 +655,9 @@ function getCurrentChoices(context) {
   });
 }
 
+/**
+ * Reads a contributed setting only when the user has actually configured it.
+ */
 function getConfiguredValue(config, key, defaultValue) {
   const inspection = config.inspect(`${EXTENSION_PREFIX}.${key}`);
   if (hasConfiguredValue(inspection)) {
@@ -571,6 +667,9 @@ function getConfiguredValue(config, key, defaultValue) {
   return defaultValue;
 }
 
+/**
+ * Checks whether VS Code inspection data contains any configured scope value.
+ */
 function hasConfiguredValue(inspection) {
   if (!inspection) {
     return false;
@@ -585,6 +684,9 @@ function hasConfiguredValue(inspection) {
   ].some((key) => inspection[key] !== undefined);
 }
 
+/**
+ * Normalizes arbitrary payloads into a valid Camaleone choice object.
+ */
 function sanitizeChoices(options) {
   const startColor = normalizeHex(options && options.startColor) || DEFAULT_CHOICES.startColor;
   const endColor = normalizeHex(options && options.endColor) || DEFAULT_CHOICES.endColor;
@@ -608,10 +710,16 @@ function sanitizeChoices(options) {
   };
 }
 
+/**
+ * Keeps relationship values inside the supported palette interpolation modes.
+ */
 function sanitizeColorRelationship(value) {
   return value === "analogous" || value === "complementary" ? value : "manual";
 }
 
+/**
+ * Keeps legacy panel harmony values inside the supported modes.
+ */
 function sanitizePanelHarmony(value) {
   if (value === "manual" || value === "analogous" || value === "complementary") {
     return value;
@@ -619,6 +727,9 @@ function sanitizePanelHarmony(value) {
   return DEFAULT_CHOICES.panelHarmony;
 }
 
+/**
+ * Filters per-surface overrides to known surfaces with valid hex colors.
+ */
 function sanitizeSurfaceOverrides(overrides) {
   if (!isPlainObject(overrides)) {
     return {};
@@ -635,6 +746,10 @@ function sanitizeSurfaceOverrides(overrides) {
   return clean;
 }
 
+/**
+ * Resolves a requested settings target to a concrete VS Code configuration
+ * target, falling back to global settings when no workspace is open.
+ */
 function resolveTarget(requestedTarget) {
   const normalized = requestedTarget === "global" ? "global" : "workspace";
   const hasWorkspace = Boolean(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length);
@@ -665,6 +780,10 @@ function resolveTarget(requestedTarget) {
   };
 }
 
+/**
+ * Remembers the last picker choices and optionally writes them as extension
+ * configuration values.
+ */
 async function saveExtensionSettings(context, choices, target) {
   const config = vscode.workspace.getConfiguration();
   const rememberedChoices = {
@@ -690,6 +809,10 @@ async function saveExtensionSettings(context, choices, target) {
   await config.update(`${EXTENSION_PREFIX}.surfaceOverrides`, choices.surfaceOverrides, target.configurationTarget);
 }
 
+/**
+ * Applies generated workbench colors while preserving a backup of pre-existing
+ * values for later restore.
+ */
 async function patchWorkbenchColors(context, generatedColors, target) {
   const config = vscode.workspace.getConfiguration();
   const currentColors = config.get("workbench.colorCustomizations", {});
@@ -701,6 +824,7 @@ async function patchWorkbenchColors(context, generatedColors, target) {
   const isActive = state.get(activeKey, false);
   let backup = state.get(backupKey, {});
 
+  // Capture original user/theme overrides only on the first active Camaleone write.
   if (!isActive) {
     backup = {};
     for (const key of EXTENSION_COLOR_KEYS) {
@@ -713,6 +837,7 @@ async function patchWorkbenchColors(context, generatedColors, target) {
 
   const nextColors = { ...currentObject };
 
+  // Replace managed keys with generated values and clean up stale generated keys.
   for (const key of EXTENSION_COLOR_KEYS) {
     if (Object.prototype.hasOwnProperty.call(generatedColors, key)) {
       nextColors[key] = generatedColors[key];
@@ -733,6 +858,10 @@ async function patchWorkbenchColors(context, generatedColors, target) {
   await state.update(lastGeneratedKey, generatedColors);
 }
 
+/**
+ * Replays the saved backup for a target without clobbering user edits made
+ * after Camaleone applied colors.
+ */
 async function restoreWorkbenchColors(context, target) {
   const config = vscode.workspace.getConfiguration();
   const currentColors = config.get("workbench.colorCustomizations", {});
@@ -747,6 +876,7 @@ async function restoreWorkbenchColors(context, target) {
   const lastGenerated = state.get(lastGeneratedKey, {});
   const resetPrevious = state.get(resetPreviousKey, {});
 
+  // Reset flows keep a separate snapshot so Restore Previous can undo a reset.
   if (hasObjectEntries(resetPrevious)) {
     const nextColors = mergeManagedWorkbenchColorKeys(currentObject, resetPrevious);
     await updateWorkbenchColorCustomizations(config, nextColors, target.configurationTarget);
@@ -762,6 +892,7 @@ async function restoreWorkbenchColors(context, target) {
 
   const nextColors = { ...currentObject };
 
+  // If the user manually changed a generated key, preserve that newer manual edit.
   for (const key of EXTENSION_COLOR_KEYS) {
     if (
       Object.prototype.hasOwnProperty.call(lastGenerated, key)
@@ -782,6 +913,10 @@ async function restoreWorkbenchColors(context, target) {
   return true;
 }
 
+/**
+ * Removes managed keys from workbench.colorCustomizations and records enough
+ * state for Restore Previous to bring them back.
+ */
 async function resetWorkbenchDefaults(context, target) {
   const config = vscode.workspace.getConfiguration();
   const currentColors = config.get("workbench.colorCustomizations", {});
@@ -793,6 +928,9 @@ async function resetWorkbenchDefaults(context, target) {
   return true;
 }
 
+/**
+ * Stores the pre-reset colors when a reset removed any Camaleone-managed keys.
+ */
 async function rememberResetPreviousState(state, target, previousColors) {
   const resetPreviousKey = stateKey(target, "resetPrevious");
 
@@ -805,6 +943,9 @@ async function rememberResetPreviousState(state, target, previousColors) {
   await state.update(resetPreviousKey, previousColors);
 }
 
+/**
+ * Collects managed color keys from top-level and theme-specific settings blocks.
+ */
 function collectManagedWorkbenchColorKeys(currentColors) {
   if (!isPlainObject(currentColors)) {
     return {};
@@ -826,6 +967,9 @@ function collectManagedWorkbenchColorKeys(currentColors) {
   return snapshot;
 }
 
+/**
+ * Collects only top-level managed color keys from a color customization object.
+ */
 function collectTopLevelManagedWorkbenchColorKeys(currentColors) {
   if (!isPlainObject(currentColors)) {
     return {};
@@ -840,6 +984,10 @@ function collectTopLevelManagedWorkbenchColorKeys(currentColors) {
   return snapshot;
 }
 
+/**
+ * Merges managed keys back into current settings, including theme-specific
+ * nested customizations.
+ */
 function mergeManagedWorkbenchColorKeys(currentColors, managedColors) {
   const nextColors = isPlainObject(currentColors) ? { ...currentColors } : {};
 
@@ -861,6 +1009,9 @@ function mergeManagedWorkbenchColorKeys(currentColors, managedColors) {
   return nextColors;
 }
 
+/**
+ * Removes Camaleone-managed keys while keeping unrelated customization keys.
+ */
 function removeManagedWorkbenchColorKeys(currentColors) {
   if (!isPlainObject(currentColors)) {
     return {};
@@ -892,15 +1043,24 @@ function removeManagedWorkbenchColorKeys(currentColors) {
   return nextColors;
 }
 
+/**
+ * Detects VS Code theme-specific customization blocks such as [Default Dark+].
+ */
 function isThemeSpecificCustomizationKey(key) {
   return typeof key === "string" && key.startsWith("[") && key.endsWith("]");
 }
 
+/**
+ * Writes workbench.colorCustomizations or removes the setting when empty.
+ */
 async function updateWorkbenchColorCustomizations(config, colors, target) {
   const nextValue = Object.keys(colors).length > 0 ? colors : undefined;
   await config.update("workbench.colorCustomizations", nextValue, target);
 }
 
+/**
+ * Clears all per-target restore bookkeeping from the chosen memento.
+ */
 async function clearTrackedState(state, target) {
   await state.update(stateKey(target, "active"), false);
   await state.update(stateKey(target, "backup"), undefined);
@@ -908,14 +1068,23 @@ async function clearTrackedState(state, target) {
   await state.update(stateKey(target, "resetPrevious"), undefined);
 }
 
+/**
+ * Builds a stable memento key for one target and state bucket.
+ */
 function stateKey(target, key) {
   return `${EXTENSION_PREFIX}.${target.id}.${key}`;
 }
 
+/**
+ * Returns workspaceState or globalState for the chosen target.
+ */
 function getMemento(context, target) {
   return target.state === "workspace" ? context.workspaceState : context.globalState;
 }
 
+/**
+ * Reads user-saved favorites from global state.
+ */
 function getSavedFavorites(context) {
   const favorites = context.globalState.get(FAVORITES_KEY, []);
   if (!Array.isArray(favorites)) {
@@ -927,6 +1096,10 @@ function getSavedFavorites(context) {
     .map((favorite) => normalizeFavorite(favorite, false));
 }
 
+/**
+ * Combines saved favorites with built-in presets, allowing saved entries to
+ * override built-ins by name.
+ */
 function getFavorites(context) {
   const savedFavorites = getSavedFavorites(context);
   const savedNames = new Set(savedFavorites.map((favorite) => favorite.name.toLowerCase()));
@@ -936,6 +1109,9 @@ function getFavorites(context) {
   return [...savedFavorites, ...defaultFavorites];
 }
 
+/**
+ * Normalizes one favorite to the current choice schema.
+ */
 function normalizeFavorite(favorite, builtin) {
   return {
     id: String(favorite.id || `saved-${slugFavoriteName(favorite.name)}`),
@@ -946,6 +1122,9 @@ function normalizeFavorite(favorite, builtin) {
   };
 }
 
+/**
+ * Prompts for a favorite name and stores the current color choices.
+ */
 async function saveFavorite(context, payload) {
   const choices = sanitizeChoices(payload);
   const suggestedName = payload && typeof payload.favoriteName === "string" ? payload.favoriteName.trim() : "";
@@ -986,12 +1165,18 @@ async function saveFavorite(context, payload) {
   return getFavorites(context);
 }
 
+/**
+ * Deletes a saved favorite and returns the refreshed favorite list.
+ */
 async function deleteFavorite(context, favoriteId) {
   const favorites = getSavedFavorites(context).filter((favorite) => favorite.id !== favoriteId);
   await context.globalState.update(FAVORITES_KEY, favorites);
   return getFavorites(context);
 }
 
+/**
+ * Applies a favorite by id from either saved or built-in favorite lists.
+ */
 async function applyFavoriteById(context, favoriteId) {
   const favorite = getFavorites(context).find((entry) => entry.id === favoriteId);
   if (!favorite) {
@@ -1000,10 +1185,16 @@ async function applyFavoriteById(context, favoriteId) {
   return applyColors(context, favorite);
 }
 
+/**
+ * Creates a short collision-resistant id for user-saved favorites.
+ */
 function createFavoriteId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/**
+ * Builds a deterministic fallback id fragment from a favorite name.
+ */
 function slugFavoriteName(name) {
   return String(name || "favorite")
     .toLowerCase()
@@ -1012,6 +1203,10 @@ function slugFavoriteName(name) {
     || "favorite";
 }
 
+/**
+ * Creates a random readable palette with either analogous or complementary
+ * color movement.
+ */
 function createSurprisePalette() {
   const startColor = randomReadableColor();
   const startHsl = hexToHsl(startColor);
@@ -1027,6 +1222,9 @@ function createSurprisePalette() {
   return { startColor, endColor, relationship: complementary ? "complementary" : "analogous" };
 }
 
+/**
+ * Derives a monochromatic harmony color from one base color.
+ */
 function harmonyColor(baseColor, position, harmonyMode) {
   const base = hexToHsl(baseColor);
   if (harmonyMode === "complementary") {
@@ -1044,6 +1242,9 @@ function harmonyColor(baseColor, position, harmonyMode) {
   });
 }
 
+/**
+ * Samples the selected palette relationship at a normalized position.
+ */
 function paletteColor(startColor, endColor, position, relationship) {
   const mode = sanitizeColorRelationship(relationship);
   if (mode === "manual") {
@@ -1053,6 +1254,9 @@ function paletteColor(startColor, endColor, position, relationship) {
   return interpolateHslColor(startColor, endColor, position, mode === "complementary");
 }
 
+/**
+ * Interpolates two colors in HSL space.
+ */
 function interpolateHslColor(startColor, endColor, position, useLongHuePath) {
   const start = hexToHsl(startColor);
   const end = hexToHsl(endColor);
@@ -1066,6 +1270,9 @@ function interpolateHslColor(startColor, endColor, position, useLongHuePath) {
   });
 }
 
+/**
+ * Returns the signed hue delta for short-path or long-path interpolation.
+ */
 function hueDeltaBetween(startHue, endHue, useLongHuePath) {
   const shortest = ((endHue - startHue + 540) % 360) - 180;
   if (!useLongHuePath) {
@@ -1079,6 +1286,9 @@ function hueDeltaBetween(startHue, endHue, useLongHuePath) {
   return shortest > 0 ? shortest - 360 : shortest + 360;
 }
 
+/**
+ * Generates a random HSL color within readable saturation/lightness bounds.
+ */
 function randomReadableColor() {
   return hslToHex({
     h: Math.floor(Math.random() * 360),
@@ -1087,14 +1297,23 @@ function randomReadableColor() {
   });
 }
 
+/**
+ * Returns a random integer in the inclusive range.
+ */
 function randomBetween(min, max) {
   return Math.floor(min + Math.random() * (max - min + 1));
 }
 
+/**
+ * Rotates a hue into the 0-359 degree range.
+ */
 function rotateHue(hue, amount) {
   return ((hue + amount) % 360 + 360) % 360;
 }
 
+/**
+ * Converts a hex color to HSL components.
+ */
 function hexToHsl(hex) {
   const rgb = hexToRgb(hex);
   const r = rgb.r / 255;
@@ -1122,6 +1341,9 @@ function hexToHsl(hex) {
   return { h, s: s * 100, l: l * 100 };
 }
 
+/**
+ * Converts HSL components to a normalized hex color.
+ */
 function hslToHex(hsl) {
   const h = rotateHue(hsl.h, 0) / 360;
   const s = Math.max(0, Math.min(100, hsl.s)) / 100;
@@ -1149,6 +1371,9 @@ function hslToHex(hsl) {
   });
 }
 
+/**
+ * Maps sanitized choices to VS Code workbench.colorCustomizations.
+ */
 function createColorCustomizations(choices) {
   const startColor = normalizeHex(choices.startColor) || DEFAULT_CHOICES.startColor;
   const endColor = normalizeHex(choices.endColor) || DEFAULT_CHOICES.endColor;
@@ -1182,6 +1407,7 @@ function createColorCustomizations(choices) {
     return createSoberColorCustomizations(startColor, endColor, colorRelationship);
   }
 
+  // Non-sober mode applies the sampled palette broadly, with translucent side bar color.
   const title = surface("titleBar");
   const activity = surface("activityBar");
   const side = surface("sideBar");
@@ -1247,6 +1473,7 @@ function createColorCustomizations(choices) {
     "titleBar.inactiveForeground": withAlpha(contrastColor(mutedTitle), 0.74)
   };
 
+  // Editor accents are opt-in because selection/cursor colors affect readability most.
   if (choices.includeEditorAccent) {
     colors["editor.findMatchBackground"] = withAlpha(editorAccent, 0.52);
     colors["editor.lineHighlightBackground"] = withAlpha(editorAccent, 0.18);
@@ -1258,6 +1485,10 @@ function createColorCustomizations(choices) {
   return colors;
 }
 
+/**
+ * Creates the restrained default color map: mostly neutral chrome with only the
+ * title bar, activity bar, and status bar carrying the identity colors.
+ */
 function createSoberColorCustomizations(startColor, endColor, colorRelationship) {
   const neutral = "#1e1e1e";
   const title = paletteColor(startColor, endColor, 0, colorRelationship);
@@ -1317,11 +1548,17 @@ function createSoberColorCustomizations(startColor, endColor, colorRelationship)
   };
 }
 
+/**
+ * Looks up a configured surface sample position.
+ */
 function surfaceSample(id, fallback) {
   const config = SURFACE_CONFIGS.find((entry) => entry.id === id);
   return config ? config.sample : fallback;
 }
 
+/**
+ * Chooses a neutral base color from the active VS Code theme kind.
+ */
 function baseColorForTheme() {
   const kind = vscode.window.activeColorTheme && vscode.window.activeColorTheme.kind;
   if (kind === vscode.ColorThemeKind.Light || kind === vscode.ColorThemeKind.HighContrastLight) {
@@ -1333,6 +1570,9 @@ function baseColorForTheme() {
   return "#1e1e1e";
 }
 
+/**
+ * Parses 3- or 6-digit hex input into lower-case #rrggbb form.
+ */
 function normalizeHex(value) {
   if (typeof value !== "string") {
     return undefined;
@@ -1349,6 +1589,9 @@ function normalizeHex(value) {
   return `#${hex}`.toLowerCase();
 }
 
+/**
+ * Converts a normalized hex color to RGB channels.
+ */
 function hexToRgb(hex) {
   const normalized = normalizeHex(hex);
   if (!normalized) {
@@ -1361,11 +1604,17 @@ function hexToRgb(hex) {
   };
 }
 
+/**
+ * Converts RGB channels to a normalized hex color.
+ */
 function rgbToHex(rgb) {
   const toHex = (channel) => clampNumber(Math.round(channel), 0, 255).toString(16).padStart(2, "0");
   return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
 }
 
+/**
+ * Linearly interpolates two hex colors in RGB space.
+ */
 function interpolateColor(startColor, endColor, position) {
   const start = hexToRgb(startColor);
   const end = hexToRgb(endColor);
@@ -1377,6 +1626,9 @@ function interpolateColor(startColor, endColor, position) {
   });
 }
 
+/**
+ * Blends an overlay color into a base color by amount.
+ */
 function blendColor(baseColor, overlayColor, amount) {
   const base = hexToRgb(baseColor);
   const overlay = hexToRgb(overlayColor);
@@ -1388,6 +1640,9 @@ function blendColor(baseColor, overlayColor, amount) {
   });
 }
 
+/**
+ * Returns black or white text for readable contrast against a background.
+ */
 function contrastColor(hex) {
   const rgb = hexToRgb(hex);
   const channels = [rgb.r, rgb.g, rgb.b].map((channel) => {
@@ -1398,6 +1653,9 @@ function contrastColor(hex) {
   return luminance > 0.42 ? "#000000" : "#ffffff";
 }
 
+/**
+ * Appends an alpha channel to a hex color.
+ */
 function withAlpha(hex, alpha) {
   const normalized = normalizeHex(hex);
   if (!normalized) {
@@ -1409,12 +1667,18 @@ function withAlpha(hex, alpha) {
   return `${normalized}${alphaHex}`;
 }
 
+/**
+ * Creates a subtle hover color against the active theme base.
+ */
 function adjustForHover(hex) {
   const base = baseColorForTheme();
   const contrast = contrastColor(base) === "#ffffff" ? "#ffffff" : "#000000";
   return blendColor(hex, contrast, 0.12);
 }
 
+/**
+ * Clamps numeric input into an inclusive range.
+ */
 function clampNumber(value, min, max) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
@@ -1423,18 +1687,30 @@ function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, numeric));
 }
 
+/**
+ * Checks for ordinary object values used as JSON settings/state.
+ */
 function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Checks whether a plain object contains any own keys.
+ */
 function hasObjectEntries(value) {
   return isPlainObject(value) && Object.keys(value).length > 0;
 }
 
+/**
+ * Validates native input-box hex color input.
+ */
 function validateHexInput(value) {
   return normalizeHex(value) ? undefined : "Use a valid hex color such as #0ea5e9.";
 }
 
+/**
+ * Generates a Content Security Policy nonce for the picker webview.
+ */
 function getNonce() {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let nonce = "";
@@ -1444,6 +1720,9 @@ function getNonce() {
   return nonce;
 }
 
+/**
+ * Builds webview options with local asset roots when extensionUri is available.
+ */
 function createPickerWebviewOptions(context) {
   const options = {
     enableScripts: true,
@@ -1457,6 +1736,9 @@ function createPickerWebviewOptions(context) {
   return options;
 }
 
+/**
+ * Resolves picker icon asset URIs for use inside the webview.
+ */
 function createPickerIconUris(context, webview) {
   return {
     title: getWebviewAssetUri(context, webview, "assets", "icons", "png", "camaleone-sil-2.png"),
@@ -1464,6 +1746,9 @@ function createPickerIconUris(context, webview) {
   };
 }
 
+/**
+ * Converts an extension-relative asset path to a webview-safe URI.
+ */
 function getWebviewAssetUri(context, webview, ...segments) {
   if (
     !context ||
@@ -1479,6 +1764,9 @@ function getWebviewAssetUri(context, webview, ...segments) {
   return String(webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, ...segments)));
 }
 
+/**
+ * Escapes values inserted into HTML attributes in the generated webview.
+ */
 function escapeHtmlAttribute(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -1487,6 +1775,9 @@ function escapeHtmlAttribute(value) {
     .replace(/>/g, "&gt;");
 }
 
+/**
+ * Generates the picker HTML, CSS, and browser-side script.
+ */
 function getPickerHtml(webview, state) {
   const nonce = getNonce();
   const safeState = JSON.stringify(state).replace(/</g, "\\u003c");
@@ -2051,6 +2342,12 @@ function getPickerHtml(webview, state) {
   </main>
 
   <script nonce="${nonce}">
+    /**
+     * Browser-side picker controller.
+     *
+     * The webview keeps preview state locally and sends normalized messages to
+     * the extension host for actual settings writes.
+     */
     const vscode = acquireVsCodeApi();
     const state = ${safeState};
 
@@ -2087,6 +2384,9 @@ function getPickerHtml(webview, state) {
     const sideBarBackgroundAlpha = ${SIDE_BAR_BACKGROUND_ALPHA};
     let applyTimer;
 
+    /**
+     * Creates dynamic controls, loads initial state, and registers UI events.
+     */
     function initialize() {
       createSurfaceControls();
       createSurfacePreview();
@@ -2146,6 +2446,9 @@ function getPickerHtml(webview, state) {
       updatePreview();
     }
 
+    /**
+     * Builds one editable color row per surface definition.
+     */
     function createSurfaceControls() {
       elements.surfaceControls.textContent = "";
       for (const surface of surfaces) {
@@ -2195,6 +2498,7 @@ function getPickerHtml(webview, state) {
           resetButton.disabled = checkbox.dataset.custom !== "true";
           updatePreview();
         });
+        // Color edits immediately mark a surface as a user override.
         const markCustomSurface = () => {
           checkbox.checked = true;
           checkbox.dataset.custom = "true";
@@ -2240,6 +2544,9 @@ function getPickerHtml(webview, state) {
       }
     }
 
+    /**
+     * Builds the palette preview tiles shown above the customization form.
+     */
     function createSurfacePreview() {
       elements.surfacePreview.textContent = "";
       for (const surface of surfaces) {
@@ -2255,6 +2562,9 @@ function getPickerHtml(webview, state) {
       }
     }
 
+    /**
+     * Loads a complete choice object into form controls.
+     */
     function setChoices(choices) {
       const next = choices || {};
       const startColor = normalizeHex(next.startColor) || state.defaultChoices.startColor;
@@ -2276,6 +2586,9 @@ function getPickerHtml(webview, state) {
       updatePreview();
     }
 
+    /**
+     * Chooses the active relationship value from current and legacy choice keys.
+     */
     function getRelationshipValue(choices) {
       if (choices.colorRelationship === "analogous" || choices.colorRelationship === "complementary") {
         return choices.colorRelationship;
@@ -2289,6 +2602,9 @@ function getPickerHtml(webview, state) {
       return "manual";
     }
 
+    /**
+     * Applies saved per-surface overrides while keeping generated defaults visible.
+     */
     function setSurfaceOverrides(overrides) {
       for (const surface of surfaces) {
         const control = surfaceControlMap.get(surface.id);
@@ -2304,6 +2620,9 @@ function getPickerHtml(webview, state) {
       }
     }
 
+    /**
+     * Clears one custom surface override and restores the generated suggestion.
+     */
     function revertSurfaceOverride(surfaceId) {
       const control = surfaceControlMap.get(surfaceId);
       if (!control) {
@@ -2321,6 +2640,9 @@ function getPickerHtml(webview, state) {
       updatePreviewAndApply(0);
     }
 
+    /**
+     * Collects the form into the message payload understood by the extension host.
+     */
     function collectChoices() {
       return {
         startColor: normalizeHex(elements.startText.value) || elements.startColor.value,
@@ -2336,6 +2658,9 @@ function getPickerHtml(webview, state) {
       };
     }
 
+    /**
+     * Collects only surface rows explicitly marked as custom overrides.
+     */
     function collectSurfaceOverrides() {
       const overrides = {};
       for (const surface of surfaces) {
@@ -2348,6 +2673,9 @@ function getPickerHtml(webview, state) {
       return overrides;
     }
 
+    /**
+     * Normalizes 3- or 6-digit hex input for browser-side previews.
+     */
     function normalizeHex(value) {
       const match = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(String(value || "").trim());
       if (!match) {
@@ -2360,6 +2688,9 @@ function getPickerHtml(webview, state) {
       return ("#" + hex).toLowerCase();
     }
 
+    /**
+     * Converts a hex color to RGB channels for preview math.
+     */
     function hexToRgb(hex) {
       const normalized = normalizeHex(hex) || "#000000";
       return {
@@ -2369,11 +2700,17 @@ function getPickerHtml(webview, state) {
       };
     }
 
+    /**
+     * Converts RGB channels to a preview hex color.
+     */
     function rgbToHex(rgb) {
       const toHex = (channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, "0");
       return "#" + toHex(rgb.r) + toHex(rgb.g) + toHex(rgb.b);
     }
 
+    /**
+     * Mixes two RGB colors for generated preview colors.
+     */
     function mix(startHex, endHex, ratio) {
       const start = hexToRgb(startHex);
       const end = hexToRgb(endHex);
@@ -2384,6 +2721,9 @@ function getPickerHtml(webview, state) {
       });
     }
 
+    /**
+     * Adds alpha to a preview color for translucent surfaces.
+     */
     function withAlpha(hex, alpha) {
       const normalized = normalizeHex(hex) || "#000000";
       const alphaHex = Math.max(0, Math.min(255, Math.round(Math.max(0, Math.min(1, alpha)) * 255)))
@@ -2392,6 +2732,9 @@ function getPickerHtml(webview, state) {
       return normalized + alphaHex;
     }
 
+    /**
+     * Removes alpha when an input control needs a solid color.
+     */
     function solidHex(hex) {
       const normalized = normalizeHex(hex);
       if (normalized) {
@@ -2401,6 +2744,9 @@ function getPickerHtml(webview, state) {
       return match ? ("#" + match[1].slice(0, 6)).toLowerCase() : undefined;
     }
 
+    /**
+     * Resolves translucent colors against the theme base for readable preview text.
+     */
     function effectivePreviewColor(hex, baseHex) {
       const solid = solidHex(hex) || "#000000";
       const match = /^#([0-9a-fA-F]{8})$/.exec(String(hex || "").trim());
@@ -2411,17 +2757,26 @@ function getPickerHtml(webview, state) {
       return mix(baseHex, solid, alpha);
     }
 
+    /**
+     * Picks black or white preview text for a solid background.
+     */
     function contrast(hex) {
       const rgb = hexToRgb(hex);
       const luminance = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
       return luminance > 0.54 ? "#000000" : "#ffffff";
     }
 
+    /**
+     * Mirrors native color input changes into the text field.
+     */
     function syncFromColor(colorInput, textInput) {
       textInput.value = colorInput.value;
       updatePreview();
     }
 
+    /**
+     * Mirrors valid text color edits into the native color input.
+     */
     function syncFromText(textInput, colorInput) {
       const normalized = normalizeHex(textInput.value);
       if (normalized) {
@@ -2430,10 +2785,16 @@ function getPickerHtml(webview, state) {
       updatePreview();
     }
 
+    /**
+     * Returns the legacy harmony relationship expected by monochromatic choices.
+     */
     function selectedHarmonyRelationship() {
       return elements.panelHarmony.value === "complementary" ? "complementary" : "analogous";
     }
 
+    /**
+     * Derives a preview harmony color from one base color.
+     */
     function harmonyColor(baseColor, position, harmonyMode) {
       const base = hexToHsl(baseColor);
       if (harmonyMode === "complementary") {
@@ -2451,6 +2812,9 @@ function getPickerHtml(webview, state) {
       });
     }
 
+    /**
+     * Samples the current preview palette relationship.
+     */
     function paletteColor(startColor, endColor, position, relationship) {
       if (relationship === "manual") {
         return mix(startColor, endColor, position);
@@ -2459,6 +2823,9 @@ function getPickerHtml(webview, state) {
       return mixHsl(startColor, endColor, position, relationship === "complementary");
     }
 
+    /**
+     * Mixes two preview colors in HSL space.
+     */
     function mixHsl(startColor, endColor, position, useLongHuePath) {
       const start = hexToHsl(startColor);
       const end = hexToHsl(endColor);
@@ -2472,6 +2839,9 @@ function getPickerHtml(webview, state) {
       });
     }
 
+    /**
+     * Returns the short or long hue interpolation delta.
+     */
     function hueDeltaBetween(startHue, endHue, useLongHuePath) {
       const shortest = ((endHue - startHue + 540) % 360) - 180;
       if (!useLongHuePath) {
@@ -2485,6 +2855,9 @@ function getPickerHtml(webview, state) {
       return shortest > 0 ? shortest - 360 : shortest + 360;
     }
 
+    /**
+     * Generates the preview colors for every surface.
+     */
     function getGeneratedSurfaceColors(overrideInput, ignoreCustom) {
       const start = normalizeHex(elements.startText.value) || elements.startColor.value;
       const end = normalizeHex(elements.endText.value) || elements.endColor.value;
@@ -2496,6 +2869,7 @@ function getPickerHtml(webview, state) {
       const harmonyMode = selectedHarmonyRelationship();
       const colors = {};
 
+      // Sober mode intentionally keeps secondary surfaces neutral.
       for (const surface of surfaces) {
         if (sober) {
           if (surface.id === "titleBar") {
@@ -2527,6 +2901,9 @@ function getPickerHtml(webview, state) {
       return colors;
     }
 
+    /**
+     * Renders the gradient strip, surface cards, labels, and control defaults.
+     */
     function updatePreview() {
       const start = normalizeHex(elements.startText.value) || elements.startColor.value;
       const end = normalizeHex(elements.endText.value) || elements.endColor.value;
@@ -2560,11 +2937,17 @@ function getPickerHtml(webview, state) {
       }
     }
 
+    /**
+     * Refreshes the preview and schedules an automatic apply.
+     */
     function updatePreviewAndApply(delay) {
       updatePreview();
       scheduleApply(delay);
     }
 
+    /**
+     * Debounces settings writes while users drag sliders or type colors.
+     */
     function scheduleApply(delay) {
       if (applyTimer) {
         clearTimeout(applyTimer);
@@ -2576,6 +2959,9 @@ function getPickerHtml(webview, state) {
       }, Math.max(0, Number(delay) || 0));
     }
 
+    /**
+     * Sends the current choices to the extension host for persistence.
+     */
     function postApply() {
       if (applyTimer) {
         clearTimeout(applyTimer);
@@ -2591,6 +2977,9 @@ function getPickerHtml(webview, state) {
       vscode.postMessage({ type: "apply", ...choices });
     }
 
+    /**
+     * Requests restoration of the previous tracked workbench colors.
+     */
     function postClear() {
       vscode.postMessage({
         type: "clear",
@@ -2598,6 +2987,9 @@ function getPickerHtml(webview, state) {
       });
     }
 
+    /**
+     * Requests removal of Camaleone-managed color customizations.
+     */
     function postResetDefault() {
       vscode.postMessage({
         type: "resetDefault",
@@ -2605,6 +2997,9 @@ function getPickerHtml(webview, state) {
       });
     }
 
+    /**
+     * Creates a random preview palette without writing settings until applied.
+     */
     function surpriseMe() {
       selectedFavoriteName = undefined;
       const start = randomReadableColor();
@@ -2632,6 +3027,9 @@ function getPickerHtml(webview, state) {
       updatePreview();
     }
 
+    /**
+     * Marks all surface controls as generated rather than custom.
+     */
     function clearSurfaceOverrides() {
       for (const surface of surfaces) {
         const control = surfaceControlMap.get(surface.id);
@@ -2643,6 +3041,9 @@ function getPickerHtml(webview, state) {
       }
     }
 
+    /**
+     * Generates a random readable color for surprise palettes.
+     */
     function randomReadableColor() {
       return hslToHex({
         h: Math.floor(Math.random() * 360),
@@ -2651,14 +3052,23 @@ function getPickerHtml(webview, state) {
       });
     }
 
+    /**
+     * Returns a random integer in the inclusive range.
+     */
     function randomBetween(min, max) {
       return Math.floor(min + Math.random() * (max - min + 1));
     }
 
+    /**
+     * Rotates a hue into the 0-359 degree range.
+     */
     function rotateHue(hue, amount) {
       return ((hue + amount) % 360 + 360) % 360;
     }
 
+    /**
+     * Converts a preview hex color to HSL components.
+     */
     function hexToHsl(hex) {
       const rgb = hexToRgb(hex);
       const r = rgb.r / 255;
@@ -2686,6 +3096,9 @@ function getPickerHtml(webview, state) {
       return { h, s: s * 100, l: l * 100 };
     }
 
+    /**
+     * Converts preview HSL components to a hex color.
+     */
     function hslToHex(hsl) {
       const h = rotateHue(hsl.h, 0) / 360;
       const s = Math.max(0, Math.min(100, hsl.s)) / 100;
@@ -2713,6 +3126,9 @@ function getPickerHtml(webview, state) {
       });
     }
 
+    /**
+     * Sends the current choices to be saved as a named favorite.
+     */
     function postSaveFavorite() {
       vscode.postMessage({
         type: "saveFavorite",
@@ -2721,6 +3137,9 @@ function getPickerHtml(webview, state) {
       });
     }
 
+    /**
+     * Renders the favorite selector with a disabled placeholder.
+     */
     function renderFavorites() {
       elements.favorites.textContent = "";
       selectedFavoriteName = undefined;
@@ -2748,12 +3167,18 @@ function getPickerHtml(webview, state) {
       syncFavoriteActions();
     }
 
+    /**
+     * Enables or disables favorite actions based on the current selection.
+     */
     function syncFavoriteActions() {
       const favorite = favorites.find((entry) => entry.id === elements.favorites.value);
       elements.favorites.classList.toggle("placeholder", !favorite);
       elements.deleteFavorite.disabled = !favorite || Boolean(favorite.builtin);
     }
 
+    /**
+     * Applies the selected favorite immediately and remembers its name for edit-over-save.
+     */
     function applySelectedFavorite() {
       const favorite = favorites.find((entry) => entry.id === elements.favorites.value);
       if (!favorite) {
@@ -2764,6 +3189,9 @@ function getPickerHtml(webview, state) {
       vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id });
     }
 
+    /**
+     * Requests deletion of the currently selected saved favorite.
+     */
     function postDeleteFavorite() {
       if (!elements.favorites.value) {
         return;
@@ -2775,6 +3203,9 @@ function getPickerHtml(webview, state) {
       selectedFavoriteName = undefined;
     }
 
+    /**
+     * Updates the visible status line from extension-host responses.
+     */
     function setStatus(text, level) {
       elements.status.textContent = text;
       elements.status.className = "status " + (level || "");
