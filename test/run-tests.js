@@ -534,6 +534,79 @@ test("favourite commands save and apply stored color profiles", async () => {
   assert.ok(informationMessages.some((message) => message.includes("Camaleone applied #112233 to #445566")));
 });
 
+test("default favourites include Magnificent 7 and QS top university palettes", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento(),
+    workspaceState: createMemento()
+  };
+
+  const favorites = testApi.getFavorites(context);
+  assert.equal(favorites.length, 17);
+  assert.equal(favorites.every((favorite) => favorite.builtin), true);
+
+  const names = favorites.map((favorite) => favorite.name);
+  for (const name of [
+    "Apple",
+    "Microsoft",
+    "Alphabet",
+    "Amazon",
+    "Meta",
+    "NVIDIA",
+    "Tesla",
+    "Massachusetts Institute of Technology (MIT)",
+    "Imperial College London",
+    "Stanford University",
+    "University of Oxford",
+    "Harvard University",
+    "University of Cambridge",
+    "ETH Zurich",
+    "National University of Singapore (NUS)",
+    "UCL",
+    "California Institute of Technology (Caltech)"
+  ]) {
+    assert.ok(names.includes(name), `${name} should be a default favourite`);
+  }
+
+  const nvidia = favorites.find((favorite) => favorite.name === "NVIDIA");
+  const stanford = favorites.find((favorite) => favorite.name === "Stanford University");
+  assert.equal(nvidia.startColor, "#76b900");
+  assert.equal(stanford.startColor, "#8c1515");
+  assert.equal(stanford.endColor, "#dad7cb");
+
+  const result = await testApi.applyFavoriteById(context, nvidia.id);
+  const colors = configValues.get("workbench.colorCustomizations");
+  assert.equal(result.startColor, "#76b900");
+  assert.equal(colors["titleBar.activeBackground"], "#76b900");
+  assert.equal(colors["statusBar.background"], "#000000");
+});
+
+test("saved favourites override default favourites by name", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento({
+      "camaleone.favorites": [{
+        id: "custom-nvidia",
+        name: "NVIDIA",
+        startColor: "#123456",
+        endColor: "#654321",
+        sober: false
+      }]
+    }),
+    workspaceState: createMemento()
+  };
+
+  const favorites = testApi.getFavorites(context);
+  const nvidiaEntries = favorites.filter((favorite) => favorite.name === "NVIDIA");
+  assert.equal(nvidiaEntries.length, 1);
+  assert.equal(nvidiaEntries[0].id, "custom-nvidia");
+  assert.equal(nvidiaEntries[0].builtin, false);
+  assert.equal(nvidiaEntries[0].startColor, "#123456");
+  assert.equal(favorites.length, 17);
+});
+
 test("reset to default removes Camaleone-managed color keys and keeps unrelated customizations", async () => {
   resetState();
   const context = {
@@ -834,6 +907,16 @@ test("README includes marketplace project description and feature copy", () => {
   assert.ok(readme.includes("Save favourite palettes"));
   assert.ok(readme.includes("> \"It's way better than other solutions like Peacock.\""));
   assert.ok(readme.indexOf("## Marketplace Description") < readme.indexOf("## How To Use"));
+});
+
+test("README lists default Magnificent 7 and university favourites", () => {
+  const readme = textFile("README.md");
+  assert.ok(readme.includes("## Default Favourites"));
+  assert.ok(readme.includes("Magnificent 7"));
+  assert.ok(readme.includes("NVIDIA (`#76b900`)"));
+  assert.ok(readme.includes("QS 2026 top 10 universities"));
+  assert.ok(readme.includes("Stanford University (`#8c1515` and `#dad7cb`)"));
+  assert.ok(readme.includes("National University of Singapore (NUS)"));
 });
 
 test("webview script is syntactically valid after state injection", () => {

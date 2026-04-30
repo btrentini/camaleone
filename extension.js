@@ -125,7 +125,49 @@ const DEFAULT_CHOICES = {
   surfaceOverrides: {}
 };
 
+const DEFAULT_FAVORITES = [
+  defaultFavorite("magnificent-7-apple", "Apple", "#000000", "#a2aaad"),
+  defaultFavorite("magnificent-7-microsoft", "Microsoft", "#f25022", "#00a4ef", {
+    panel: "#ffb900",
+    buttons: "#7fba00"
+  }),
+  defaultFavorite("magnificent-7-alphabet", "Alphabet", "#4285f4", "#34a853", {
+    panel: "#ea4335",
+    buttons: "#fbbc05"
+  }),
+  defaultFavorite("magnificent-7-amazon", "Amazon", "#ff9900", "#146eb4"),
+  defaultFavorite("magnificent-7-meta", "Meta", "#0866ff", "#1c2b33"),
+  defaultFavorite("magnificent-7-nvidia", "NVIDIA", "#76b900", "#000000"),
+  defaultFavorite("magnificent-7-tesla", "Tesla", "#e82127", "#171a20"),
+  defaultFavorite("qs-2026-mit", "Massachusetts Institute of Technology (MIT)", "#750014", "#8b959e"),
+  defaultFavorite("qs-2026-imperial", "Imperial College London", "#002147", "#003e74"),
+  defaultFavorite("qs-2026-stanford", "Stanford University", "#8c1515", "#dad7cb"),
+  defaultFavorite("qs-2026-oxford", "University of Oxford", "#002147", "#ffffff"),
+  defaultFavorite("qs-2026-harvard", "Harvard University", "#a41034", "#1e1e1e"),
+  defaultFavorite("qs-2026-cambridge", "University of Cambridge", "#85b09a", "#1f4e5f"),
+  defaultFavorite("qs-2026-eth-zurich", "ETH Zurich", "#215caf", "#000000"),
+  defaultFavorite("qs-2026-nus", "National University of Singapore (NUS)", "#ef7c00", "#003d7c"),
+  defaultFavorite("qs-2026-ucl", "UCL", "#000000", "#00a3e0"),
+  defaultFavorite("qs-2026-caltech", "California Institute of Technology (Caltech)", "#ff6c0c", "#1d1d1d")
+];
+
 let pickerPanel;
+
+function defaultFavorite(id, name, startColor, endColor, surfaceOverrides = {}) {
+  return {
+    ...DEFAULT_CHOICES,
+    id: `default-${id}`,
+    name,
+    createdAt: "built-in",
+    builtin: true,
+    startColor,
+    endColor,
+    sober: false,
+    colorRelationship: "manual",
+    panelHarmony: "manual",
+    surfaceOverrides
+  };
+}
 
 function createIdeDefaultChoices(options = {}) {
   const baseColor = baseColorForTheme();
@@ -874,7 +916,7 @@ function getMemento(context, target) {
   return target.state === "workspace" ? context.workspaceState : context.globalState;
 }
 
-function getFavorites(context) {
+function getSavedFavorites(context) {
   const favorites = context.globalState.get(FAVORITES_KEY, []);
   if (!Array.isArray(favorites)) {
     return [];
@@ -882,12 +924,26 @@ function getFavorites(context) {
 
   return favorites
     .filter((favorite) => favorite && typeof favorite.name === "string")
-    .map((favorite) => ({
-      id: String(favorite.id || createFavoriteId()),
-      name: favorite.name,
-      createdAt: favorite.createdAt || new Date().toISOString(),
-      ...sanitizeChoices(favorite)
-    }));
+    .map((favorite) => normalizeFavorite(favorite, false));
+}
+
+function getFavorites(context) {
+  const savedFavorites = getSavedFavorites(context);
+  const savedNames = new Set(savedFavorites.map((favorite) => favorite.name.toLowerCase()));
+  const defaultFavorites = DEFAULT_FAVORITES
+    .filter((favorite) => !savedNames.has(favorite.name.toLowerCase()))
+    .map((favorite) => normalizeFavorite(favorite, true));
+  return [...savedFavorites, ...defaultFavorites];
+}
+
+function normalizeFavorite(favorite, builtin) {
+  return {
+    id: String(favorite.id || `saved-${slugFavoriteName(favorite.name)}`),
+    name: favorite.name,
+    createdAt: favorite.createdAt || new Date().toISOString(),
+    ...sanitizeChoices(favorite),
+    builtin: Boolean(builtin || favorite.builtin)
+  };
 }
 
 async function saveFavorite(context, payload) {
@@ -912,7 +968,7 @@ async function saveFavorite(context, payload) {
     throw new Error("cancelled");
   }
 
-  const favorites = getFavorites(context);
+  const favorites = getSavedFavorites(context);
   const nextFavorite = {
     id: createFavoriteId(),
     name: name.trim(),
@@ -925,13 +981,13 @@ async function saveFavorite(context, payload) {
   ].slice(0, 40);
 
   await context.globalState.update(FAVORITES_KEY, nextFavorites);
-  return nextFavorites;
+  return getFavorites(context);
 }
 
 async function deleteFavorite(context, favoriteId) {
-  const favorites = getFavorites(context).filter((favorite) => favorite.id !== favoriteId);
+  const favorites = getSavedFavorites(context).filter((favorite) => favorite.id !== favoriteId);
   await context.globalState.update(FAVORITES_KEY, favorites);
-  return favorites;
+  return getFavorites(context);
 }
 
 async function applyFavoriteById(context, favoriteId) {
@@ -944,6 +1000,14 @@ async function applyFavoriteById(context, favoriteId) {
 
 function createFavoriteId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function slugFavoriteName(name) {
+  return String(name || "favorite")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    || "favorite";
 }
 
 function createSurprisePalette() {
@@ -2054,6 +2118,7 @@ function getPickerHtml(webview, state) {
       elements.surprise.addEventListener("click", surpriseMe);
       elements.saveFavorite.addEventListener("click", postSaveFavorite);
       elements.applyFavorite.addEventListener("click", applySelectedFavorite);
+      elements.favorites.addEventListener("change", syncFavoriteActions);
       elements.deleteFavorite.addEventListener("click", postDeleteFavorite);
 
       window.addEventListener("message", (event) => {
@@ -2659,10 +2724,16 @@ function getPickerHtml(webview, state) {
         const option = document.createElement("option");
         option.value = favorite.id;
         option.textContent = favorite.name;
+        option.dataset.builtin = favorite.builtin ? "true" : "false";
         elements.favorites.append(option);
       }
-      elements.applyFavorite.disabled = false;
-      elements.deleteFavorite.disabled = false;
+      syncFavoriteActions();
+    }
+
+    function syncFavoriteActions() {
+      const favorite = favorites.find((entry) => entry.id === elements.favorites.value);
+      elements.applyFavorite.disabled = !favorite;
+      elements.deleteFavorite.disabled = !favorite || Boolean(favorite.builtin);
     }
 
     function applySelectedFavorite() {
@@ -2700,6 +2771,7 @@ module.exports = {
   deactivate,
   __test: {
     DEFAULT_CHOICES,
+    DEFAULT_FAVORITES,
     EXTENSION_COLOR_KEYS,
     SURFACE_CONFIGS,
     applyColors,
