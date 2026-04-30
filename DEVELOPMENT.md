@@ -21,10 +21,16 @@ To build a local VSIX package:
 npx --yes @vscode/vsce package --no-dependencies
 ```
 
-To publish, authenticate the publisher first and then run:
+To publish to both the VS Code Marketplace and Cursor's Open VSX-backed marketplace, set both tokens and run:
 
 ```sh
-npx --yes @vscode/vsce publish --no-dependencies
+VSCE_PAT="..." OVSX_PAT="..." npm run publish:marketplaces -- --version patch
+```
+
+The script runs tests, packages one VSIX, publishes it to the Microsoft VS Code Marketplace with `vsce`, then publishes the same VSIX to Open VSX for Cursor. Use `--dry-run` to validate and build without publishing:
+
+```sh
+npm run publish:marketplaces -- --version current --dry-run
 ```
 
 ## Potential Warnings

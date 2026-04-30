@@ -154,6 +154,7 @@
   },
   "scripts": {
     "test": "node --check extension.js && node test/run-tests.js",
+    "publish:marketplaces": "scripts/publish_marketplaces.sh",
     "vscode:prepublish": "npm test",
     "prepublishOnly": "npm test"
   },
