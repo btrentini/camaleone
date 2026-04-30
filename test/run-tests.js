@@ -815,6 +815,7 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("primary-action"));
   assert.ok(html.includes("options-grid"));
   assert.ok(html.includes("option-item"));
+  assert.ok(html.includes("option-checkbox-group"));
   assert.ok(html.includes("options-actions"));
   assert.ok(html.includes("save-favorite-row"));
   assert.ok(html.includes("choose from the list..."));
@@ -953,13 +954,26 @@ test("README includes marketplace how-to-use instructions", () => {
   const readme = textFile("README.md");
   assert.ok(readme.includes("## How To Use"));
   assert.ok(readme.includes("Install Camaleone in VS Code or Cursor."));
-  assert.ok(readme.includes("Run `Camaleone: Open Color Picker`."));
+  assert.ok(readme.includes("Run `Camaleone: Open Colour Picker`."));
   assert.ok(readme.includes("This is the main command, and it opens the Camaleone customization interface."));
   assert.ok(readme.includes("Click `Apply colors` to write the current palette."));
   assert.ok(readme.includes("Click `Save as favourite...` to store a palette"));
   assert.ok(readme.includes("choose it from the favourites list to apply it later"));
   assert.ok(readme.includes("Use `Restore previous`"));
   assert.ok(readme.indexOf("## How To Use") < readme.indexOf("## Preloaded Favourites"));
+});
+
+test("command titles rely on category for the Camaleone prefix", () => {
+  const manifest = JSON.parse(textFile("package.json"));
+  const command = manifest.contributes.commands.find((entry) => entry.command === "camaleone.openPicker");
+
+  assert.equal(command.category, "Camaleone");
+  assert.equal(command.title, "Open Colour Picker");
+
+  for (const entry of manifest.contributes.commands) {
+    assert.equal(entry.category, "Camaleone");
+    assert.equal(entry.title.startsWith("Camaleone:"), false);
+  }
 });
 
 test("README includes marketplace project description and feature copy", () => {

@@ -2159,6 +2159,16 @@ function getPickerHtml(webview, state) {
       justify-content: start;
     }
 
+    .option-checkbox-group {
+      display: grid;
+      gap: 10px;
+      align-content: center;
+    }
+
+    .option-checkbox-group .checkbox-row {
+      min-height: 31px;
+    }
+
     .options-actions {
       display: grid;
       grid-template-columns: 1fr;
@@ -2293,10 +2303,17 @@ function getPickerHtml(webview, state) {
               <input id="intensity" type="range" min="0" max="100" step="1">
             </div>
 
-            <label class="checkbox-row option-item option-toggle">
-              <input id="monochromatic" type="checkbox">
-              <span>Monochromatic</span>
-            </label>
+            <div class="option-item option-checkbox-group">
+              <label class="checkbox-row option-toggle">
+                <input id="monochromatic" type="checkbox">
+                <span>Monochromatic</span>
+              </label>
+
+              <label class="checkbox-row option-toggle">
+                <input id="includeEditorAccent" type="checkbox">
+                <span>Tint editor selection/cursor</span>
+              </label>
+            </div>
 
             <div class="field option-item">
               <label for="panelHarmony">Colour relationship</label>
@@ -2314,11 +2331,6 @@ function getPickerHtml(webview, state) {
                 <option value="global">Global settings</option>
               </select>
             </div>
-
-            <label class="checkbox-row option-item option-toggle">
-              <input id="includeEditorAccent" type="checkbox">
-              <span>Tint editor selection/cursor</span>
-            </label>
           </div>
 
           <div class="options-actions">

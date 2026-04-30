@@ -35,7 +35,7 @@ It is built for people who work across many projects and want a fast visual cue 
 
 1. Install Camaleone in VS Code or Cursor.
 2. Open the Command Palette with `Cmd+Shift+P` on macOS or `Ctrl+Shift+P` on Windows and Linux.
-3. Run `Camaleone: Open Color Picker`. This is the main command, and it opens the Camaleone customization interface.
+3. Run `Camaleone: Open Colour Picker`. This is the main command, and it opens the Camaleone customization interface.
 4. Choose a `Start color` and `End color`, or click `Surprise me` to generate a palette.
 5. Leave `Sober` enabled for a restrained window identity, or turn it off for a fuller palette across the workbench.
 6. Choose whether to apply the colors to `Workspace settings` or `Global settings`.
@@ -56,7 +56,7 @@ Camaleone ships with default favourites for the Magnificent 7 companies and the 
 
 Main command:
 
-- `Camaleone: Open Color Picker`: opens the customization interface for choosing colors, previewing the palette, tuning surfaces, applying changes, and saving favourites.
+- `Camaleone: Open Colour Picker`: opens the customization interface for choosing colors, previewing the palette, tuning surfaces, applying changes, and saving favourites.
 
 Secondary commands:
 

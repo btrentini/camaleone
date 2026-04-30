@@ -2,7 +2,7 @@
   "name": "camaleone",
   "displayName": "Camaleone",
   "description": "Color for IDE windows. Better than Peacock: gradients, sober mode, presets, favourites, per-surface controls, and restore.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "trentinium",
   "license": "MIT",
   "icon": "assets/icons/ico/camaleone_transparent.ico",
@@ -30,42 +30,42 @@
     "commands": [
       {
         "command": "camaleone.openPicker",
-        "title": "Camaleone: Open Color Picker",
+        "title": "Open Colour Picker",
         "category": "Camaleone"
       },
       {
         "command": "camaleone.quickApply",
-        "title": "Camaleone: Quick Apply Without Webview",
+        "title": "Quick Apply Without Webview",
         "category": "Camaleone"
       },
       {
         "command": "camaleone.applyConfigured",
-        "title": "Camaleone: Apply Configured Colors",
+        "title": "Apply Configured Colors",
         "category": "Camaleone"
       },
       {
         "command": "camaleone.clear",
-        "title": "Camaleone: Restore Previous Colors",
+        "title": "Restore Previous Colors",
         "category": "Camaleone"
       },
       {
         "command": "camaleone.resetToDefault",
-        "title": "Camaleone: Reset to IDE Defaults",
+        "title": "Reset to IDE Defaults",
         "category": "Camaleone"
       },
       {
         "command": "camaleone.surpriseMe",
-        "title": "Camaleone: Surprise Me",
+        "title": "Surprise Me",
         "category": "Camaleone"
       },
       {
         "command": "camaleone.saveFavorite",
-        "title": "Camaleone: Save Current Colors as Favourite",
+        "title": "Save Current Colors as Favourite",
         "category": "Camaleone"
       },
       {
         "command": "camaleone.applyFavorite",
-        "title": "Camaleone: Apply Favourite Colors",
+        "title": "Apply Favourite Colors",
         "category": "Camaleone"
       }
     ],
