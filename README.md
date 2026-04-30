@@ -14,6 +14,13 @@ It is built for people who work across many projects and want a fast visual cue 
 
 > "It's way better than other solutions like Peacock."
 
+## Marketplace Screenshots
+
+|  |  |  |  |  |
+| --- | --- | --- | --- | --- |
+| ![Camaleone panel and status color example](assets/screenshots/marketplace/camaleone-8.png) | ![Camaleone full picker layout example](assets/screenshots/marketplace/camaleone-9.png) | ![Camaleone color picker with a blue and green workspace palette](assets/screenshots/marketplace/camaleone-0.png) | ![Camaleone sober mode example](assets/screenshots/marketplace/camaleone-1.png) | ![Camaleone custom surface controls](assets/screenshots/marketplace/camaleone-2.png) |
+| ![Camaleone favourite palette workflow](assets/screenshots/marketplace/camaleone-3.png) | ![Camaleone warm palette example](assets/screenshots/marketplace/camaleone-4.png) | ![Camaleone cool palette example](assets/screenshots/marketplace/camaleone-5.png) | ![Camaleone panel and status color example](assets/screenshots/marketplace/camaleone-6.png) | ![Camaleone full picker layout example](assets/screenshots/marketplace/camaleone-7.png) |
+
 ## How To Use
 
 1. Install Camaleone in VS Code or Cursor.
@@ -51,19 +58,6 @@ Camaleone ships with default favourites for the Magnificent 7 companies and the 
 - Marketplace icon: `assets/icons/ico/camaleone_transparent.ico`
 - Source PNGs: `assets/icons/png/`
 - ICO exports: `assets/icons/ico/`
-
-## Marketplace Screenshots
-
-![Camaleone panel and status color example](assets/screenshots/marketplace/camaleone-8.png)
-![Camaleone full picker layout example](assets/screenshots/marketplace/camaleone-9.png)
-![Camaleone color picker with a blue and green workspace palette](assets/screenshots/marketplace/camaleone-0.png)
-![Camaleone sober mode example](assets/screenshots/marketplace/camaleone-1.png)
-![Camaleone custom surface controls](assets/screenshots/marketplace/camaleone-2.png)
-![Camaleone favourite palette workflow](assets/screenshots/marketplace/camaleone-3.png)
-![Camaleone warm palette example](assets/screenshots/marketplace/camaleone-4.png)
-![Camaleone cool palette example](assets/screenshots/marketplace/camaleone-5.png)
-![Camaleone panel and status color example](assets/screenshots/marketplace/camaleone-6.png)
-![Camaleone full picker layout example](assets/screenshots/marketplace/camaleone-7.png)
 
 ## Settings
 

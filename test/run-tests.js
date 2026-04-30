@@ -920,6 +920,9 @@ test("manifest and generated icon assets use the organized paths", () => {
   }
 
   const readme = textFile("README.md");
+  assert.ok(readme.includes("## Marketplace Screenshots"));
+  assert.ok(readme.indexOf("## Marketplace Screenshots") < readme.indexOf("## How To Use"));
+  assert.ok(readme.includes("| --- | --- | --- | --- | --- |"));
   for (let index = 0; index <= 9; index += 1) {
     assert.ok(readme.includes(`assets/screenshots/marketplace/camaleone-${index}.png`));
   }
