@@ -4,6 +4,15 @@ Camaleone is a VS Code and Cursor extension that gives each IDE workspace more p
 
 VS Code's supported workbench color API accepts individual color values. Camaleone samples a start-to-end gradient and applies those samples across the title bar, activity bar, side bar, panel, status bar, buttons, borders, and optional editor accents.
 
+## Website And Install
+
+- Website: [trentini.fyi/camaleone](https://trentini.fyi/camaleone/)
+- VS Code Marketplace: [trentinium.camaleone](https://marketplace.visualstudio.com/items?itemName=trentinium.camaleone)
+- Open VSX: [trentinium/camaleone](https://open-vsx.org/extension/trentinium/camaleone)
+- Source: [github.com/btrentini/camaleone](https://github.com/btrentini/camaleone)
+
+The website includes the animated feature walkthrough, current marketplace screenshots, user notes, and support links. README media is intentionally loaded from the live website so marketplace pages and GitHub always show the current visuals published on `github-pages`.
+
 ## Marketplace Description
 
 Camaleone gives every VS Code and Cursor window a distinct identity **without forcing you to install a full theme**.
@@ -12,19 +21,28 @@ Pick a start and end color, generate palettes with `Surprise me`, keep the resul
 
 It is built for people who work across many projects and want a fast visual cue for each window. Save favourite palettes, apply them again later, restore the colors Camaleone replaced, or reset cleanly to IDE defaults whenever you need to.
 
+## Feature Highlights
+
+- Gradient-inspired workbench identity without installing or switching full themes.
+- Sober mode for restrained color on high-signal surfaces.
+- Per-surface customization for title bar, activity bar, side bar, panel, status bar, buttons, borders, and editor accents.
+- Built-in presets for Magnificent 7 companies and QS 2026 top universities.
+- Favourite palettes for reusable workspace identities.
+- Clean restore and reset commands for returning to previous colors or IDE defaults.
+
 ## What Users Say
 
-> "Way better than Peacock!"
+> "Loving it! Installed and in use!!"
 >
-> "It's now so much easier to switch contexts."
+> "easy to use. great interface"
 >
-> "It's just beautiful."
+> "Way Better than Peacock!"
 >
-> "Simple to use."
+> "It's just beautiful"
 
 ## Marketplace Screenshots
 
-Click any image to open the Camaleone website.
+Click any image to open the Camaleone website. These images are loaded from `https://trentini.fyi/camaleone/`.
 
 [![Camaleone animated walkthrough showing the picker, preview, customization, presets, and saved favourites](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-feature-flow.gif)](https://trentini.fyi/camaleone/)
 

@@ -1047,11 +1047,14 @@ test("README includes marketplace project description and feature copy", () => {
   assert.ok(readme.includes("default `Sober` mode"));
   assert.ok(readme.includes("customize individual surfaces"));
   assert.ok(readme.includes("Save favourite palettes"));
+  assert.ok(readme.includes("## Website And Install"));
+  assert.ok(readme.includes("README media is intentionally loaded from the live website"));
+  assert.ok(readme.includes("## Feature Highlights"));
   assert.ok(readme.includes("## What Users Say"));
-  assert.ok(readme.includes("> \"Way better than Peacock!\""));
-  assert.ok(readme.includes("> \"It's now so much easier to switch contexts.\""));
-  assert.ok(readme.includes("> \"It's just beautiful.\""));
-  assert.ok(readme.includes("> \"Simple to use.\""));
+  assert.ok(readme.includes("> \"Loving it! Installed and in use!!\""));
+  assert.ok(readme.includes("> \"easy to use. great interface\""));
+  assert.ok(readme.includes("> \"Way Better than Peacock!\""));
+  assert.ok(readme.includes("> \"It's just beautiful\""));
   assert.ok(readme.includes("Main command:"));
   assert.ok(readme.includes("Secondary commands:"));
   assert.ok(readme.includes("opens the customization interface for choosing colors"));
