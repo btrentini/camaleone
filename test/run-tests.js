@@ -884,7 +884,7 @@ test("picker html contains the simplified workflow controls", () => {
 
 test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
-  assert.equal(manifest.publisher, "btrentini");
+  assert.equal(manifest.publisher, "trentinium");
   assert.equal(manifest.icon, "assets/icons/store/camaleone.png");
   assert.equal(manifest.repository.url, "https://github.com/btrentini/camaleone.git");
   assert.ok(manifest.description.includes("sober mode"));
