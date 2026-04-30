@@ -948,10 +948,12 @@ function normalizeFavorite(favorite, builtin) {
 
 async function saveFavorite(context, payload) {
   const choices = sanitizeChoices(payload);
+  const suggestedName = payload && typeof payload.favoriteName === "string" ? payload.favoriteName.trim() : "";
   const name = await vscode.window.showInputBox({
     title: "Camaleone",
     prompt: "Name this favourite color set",
     placeHolder: "e.g., 'Bruno Brown Chicken Bron Cow'",
+    value: suggestedName,
     validateInput: (value) => {
       const trimmed = String(value || "").trim();
       if (!trimmed) {
@@ -2081,6 +2083,7 @@ function getPickerHtml(webview, state) {
     const surfaceControlMap = new Map();
     const surfacePreviewMap = new Map();
     let favorites = Array.isArray(state.favorites) ? state.favorites : [];
+    let selectedFavoriteName;
     const sideBarBackgroundAlpha = ${SIDE_BAR_BACKGROUND_ALPHA};
     let applyTimer;
 
@@ -2135,6 +2138,7 @@ function getPickerHtml(webview, state) {
           renderFavorites();
         }
         if (message && message.type === "resetLocal") {
+          selectedFavoriteName = undefined;
           setChoices(message.choices || state.defaultChoices);
         }
       });
@@ -2602,6 +2606,7 @@ function getPickerHtml(webview, state) {
     }
 
     function surpriseMe() {
+      selectedFavoriteName = undefined;
       const start = randomReadableColor();
       const startHsl = hexToHsl(start);
       const complementary = Math.random() < 0.5;
@@ -2709,11 +2714,16 @@ function getPickerHtml(webview, state) {
     }
 
     function postSaveFavorite() {
-      vscode.postMessage({ type: "saveFavorite", ...collectChoices() });
+      vscode.postMessage({
+        type: "saveFavorite",
+        favoriteName: selectedFavoriteName,
+        ...collectChoices()
+      });
     }
 
     function renderFavorites() {
       elements.favorites.textContent = "";
+      selectedFavoriteName = undefined;
       const placeholder = document.createElement("option");
       placeholder.value = "";
       placeholder.textContent = "choose from the list...";
@@ -2724,6 +2734,7 @@ function getPickerHtml(webview, state) {
       if (!favorites.length) {
         elements.favorites.classList.add("placeholder");
         elements.deleteFavorite.disabled = true;
+        selectedFavoriteName = undefined;
         return;
       }
 
@@ -2748,6 +2759,7 @@ function getPickerHtml(webview, state) {
       if (!favorite) {
         return;
       }
+      selectedFavoriteName = favorite.name;
       setChoices(favorite);
       vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id });
     }
@@ -2760,6 +2772,7 @@ function getPickerHtml(webview, state) {
         type: "deleteFavorite",
         favoriteId: elements.favorites.value
       });
+      selectedFavoriteName = undefined;
     }
 
     function setStatus(text, level) {
@@ -2792,6 +2805,7 @@ module.exports = {
     resetIdeDefaults,
     resetWorkbenchDefaults,
     restoreWorkbenchColors,
+    saveFavorite,
     sanitizeChoices,
     sanitizeSurfaceOverrides
   }

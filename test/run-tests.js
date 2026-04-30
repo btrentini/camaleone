@@ -607,6 +607,38 @@ test("saved favourites override default favourites by name", async () => {
   assert.equal(favorites.length, 17);
 });
 
+test("preloaded favourites can be edited by saving over their preset name", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento(),
+    workspaceState: createMemento()
+  };
+  inputBoxResponses.push("NVIDIA");
+
+  const favorites = await testApi.saveFavorite(context, nonSoberChoices({
+    favoriteName: "NVIDIA",
+    startColor: "#123456",
+    endColor: "#654321",
+    surfaceOverrides: {
+      titleBar: "#abcdef"
+    }
+  }));
+
+  assert.equal(inputBoxRequests[0].value, "NVIDIA");
+  const stored = context.globalState.get("camaleone.favorites", []);
+  assert.equal(stored.length, 1);
+  assert.equal(stored[0].name, "NVIDIA");
+  assert.equal(stored[0].startColor, "#123456");
+  assert.equal(stored[0].surfaceOverrides.titleBar, "#abcdef");
+
+  const nvidiaEntries = favorites.filter((favorite) => favorite.name === "NVIDIA");
+  assert.equal(nvidiaEntries.length, 1);
+  assert.equal(nvidiaEntries[0].builtin, false);
+  assert.equal(nvidiaEntries[0].startColor, "#123456");
+  assert.equal(favorites.length, 17);
+});
+
 test("reset to default removes Camaleone-managed color keys and keeps unrelated customizations", async () => {
   resetState();
   const context = {
@@ -787,6 +819,9 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("save-favorite-row"));
   assert.ok(html.includes("choose from the list..."));
   assert.ok(html.includes("select.placeholder"));
+  assert.ok(html.includes("let selectedFavoriteName;"));
+  assert.ok(html.includes("favoriteName: selectedFavoriteName"));
+  assert.ok(html.includes("selectedFavoriteName = favorite.name;"));
   assert.ok(html.includes('elements.favorites.addEventListener("change", () =>'));
   assert.equal(html.includes('id="applyFavorite"'), false);
   assert.equal(html.includes(">Apply favourite<"), false);
@@ -923,6 +958,8 @@ test("README lists default Magnificent 7 and university favourites", () => {
   assert.ok(readme.includes("QS 2026 top 10 universities"));
   assert.ok(readme.includes("Stanford University (`#8c1515` and `#dad7cb`)"));
   assert.ok(readme.includes("National University of Singapore (NUS)"));
+  assert.ok(readme.includes("To edit a preloaded favourite"));
+  assert.ok(readme.includes("prefilled with the preset name"));
 });
 
 test("webview script is syntactically valid after state injection", () => {
