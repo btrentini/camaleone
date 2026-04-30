@@ -48,7 +48,7 @@ Camaleone ships with default favourites for the Magnificent 7 companies and the 
 
 ## Icons
 
-- Marketplace icon: `assets/icons/store/camaleone.png`
+- Marketplace icon: `assets/icons/ico/camaleone_transparent.ico`
 - Source PNGs: `assets/icons/png/`
 - ICO exports: `assets/icons/ico/`
 

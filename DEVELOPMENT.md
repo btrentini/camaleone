@@ -5,7 +5,7 @@
 - VS Code and Cursor do not expose an API for painting a literal CSS gradient on the main workbench chrome. Camaleone samples a gradient into individual `workbench.colorCustomizations` keys instead.
 - The extension has no runtime dependencies and does not use CUDA, Metal, WebGPU, SQLite, or GPU APIs.
 - Cursor uses the VS Code extension API, so the same extension package can run in both editors.
-- The marketplace icon is `assets/icons/store/camaleone.png`. Source PNG and ICO variants live under `assets/icons/png/` and `assets/icons/ico/`.
+- The marketplace icon is `assets/icons/ico/camaleone_transparent.ico`. Source PNG and ICO variants live under `assets/icons/png/` and `assets/icons/ico/`.
 
 ## Local Development
 
