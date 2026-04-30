@@ -2,7 +2,7 @@
   "name": "camaleone",
   "displayName": "Camaleone",
   "description": "Gradient-inspired VS Code and Cursor window colors with sober mode, per-surface controls, favourites, and restore.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "trentinium",
   "license": "MIT",
   "icon": "assets/icons/ico/camaleone_transparent.ico",

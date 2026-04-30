@@ -27,10 +27,17 @@ To publish to both the VS Code Marketplace and Cursor's Open VSX-backed marketpl
 npm run publish:marketplaces
 ```
 
-The script runs the marketplace commands step by step: it bumps the patch version by default because marketplace updates must use a new semver, validates and packages the extension, runs `vsce login`, lets you enter the VS Code Marketplace token, runs `vsce publish`, runs `vsce logout`, then repeats the same login, publish, and logout flow with `ovsx` for Cursor/Open VSX. Login credentials are written only to temporary credential stores created by the script and those stores are deleted before the script exits. Use `--dry-run` to validate and build without publishing:
+The script runs the marketplace commands step by step: it bumps the patch version by default when publishing to both marketplaces because marketplace updates must use a new semver, validates and packages the extension, runs `vsce login`, lets you enter the VS Code Marketplace token, runs `vsce publish`, runs `vsce logout`, then runs the Open VSX login and publish flow for Cursor/Open VSX. Login credentials are written only to temporary credential stores created by the script and those stores are deleted before the script exits. Open VSX tokens are collected silently and passed to `ovsx publish` through `OVSX_PAT` because `ovsx login` validates the token but does not reliably reuse it for publish in every environment. Use `--dry-run` to validate and build without publishing:
 
 ```sh
 npm run publish:marketplaces -- --version current --dry-run
+```
+
+To retry only one marketplace after a partial publish, use `--source`:
+
+```sh
+npm run publish:marketplaces -- --source vsx --version current
+npm run publish:marketplaces -- --source vsc --version current
 ```
 
 ## Potential Warnings
