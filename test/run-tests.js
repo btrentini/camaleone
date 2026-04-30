@@ -10,6 +10,10 @@ const errorMessages = [];
 const panelMessages = [];
 const updates = [];
 const configValues = new Map();
+const inputBoxResponses = [];
+const inputBoxRequests = [];
+const quickPickResponses = [];
+const quickPickRequests = [];
 
 function createMemento(initial = {}) {
   const store = new Map(Object.entries(initial));
@@ -81,11 +85,20 @@ const vscodeMock = {
       errorMessages.push(message);
       return Promise.resolve(undefined);
     },
-    showInputBox() {
-      return Promise.resolve(undefined);
+    showInputBox(options) {
+      inputBoxRequests.push(options);
+      return Promise.resolve(inputBoxResponses.shift());
     },
-    showQuickPick() {
-      return Promise.resolve(undefined);
+    showQuickPick(items, options) {
+      quickPickRequests.push({ items, options });
+      const response = quickPickResponses.shift();
+      if (typeof response === "function") {
+        return Promise.resolve(response(items, options));
+      }
+      if (Number.isInteger(response)) {
+        return Promise.resolve(items[response]);
+      }
+      return Promise.resolve(response);
     }
   },
   workspace: {
@@ -122,6 +135,10 @@ function resetState() {
   errorMessages.length = 0;
   panelMessages.length = 0;
   updates.length = 0;
+  inputBoxResponses.length = 0;
+  inputBoxRequests.length = 0;
+  quickPickResponses.length = 0;
+  quickPickRequests.length = 0;
   configValues.clear();
   vscodeMock.window.activeColorTheme = { kind: 2 };
 }
@@ -445,6 +462,58 @@ test("applying colors only updates extension state and workbench color customiza
   assert.ok(updates.every((entry) => entry.key === "workbench.colorCustomizations"));
 });
 
+test("favourite commands save and apply stored color profiles", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento(),
+    workspaceState: createMemento()
+  };
+  extension.activate(context);
+
+  configValues.set("camaleone.startColor", "#112233");
+  configValues.set("camaleone.endColor", "#445566");
+  configValues.set("camaleone.intensity", 100);
+  configValues.set("camaleone.applyTo", "workspace");
+  configValues.set("camaleone.sober", false);
+  configValues.set("camaleone.surfaceOverrides", {
+    titleBar: "#336699",
+    buttons: "#010203"
+  });
+  inputBoxResponses.push("Critical Favourite");
+
+  await commands.get("camaleone.saveFavorite")();
+
+  const saved = context.globalState.get("camaleone.favorites", []);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].name, "Critical Favourite");
+  assert.equal(saved[0].startColor, "#112233");
+  assert.equal(saved[0].endColor, "#445566");
+  assert.equal(saved[0].sober, false);
+  assert.deepEqual(saved[0].surfaceOverrides, {
+    titleBar: "#336699",
+    buttons: "#010203"
+  });
+
+  configValues.set("camaleone.startColor", "#000000");
+  configValues.set("camaleone.endColor", "#ffffff");
+  configValues.set("camaleone.surfaceOverrides", {
+    titleBar: "#ffffff",
+    buttons: "#ffffff"
+  });
+  quickPickResponses.push(0);
+
+  await commands.get("camaleone.applyFavorite")();
+
+  const appliedColors = configValues.get("workbench.colorCustomizations");
+  assert.equal(appliedColors["titleBar.activeBackground"], "#336699");
+  assert.equal(appliedColors["button.background"], "#010203");
+  assert.equal(appliedColors["statusBar.background"], "#445566");
+  assert.equal(context.globalState.get("camaleone.lastChoices").startColor, "#112233");
+  assert.equal(quickPickRequests[0].items[0].label, "Critical Favourite");
+  assert.ok(informationMessages.some((message) => message.includes("Camaleone applied #112233 to #445566")));
+});
+
 test("reset to default removes Camaleone-managed color keys and keeps unrelated customizations", async () => {
   resetState();
   const context = {
@@ -648,6 +717,8 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes('elements.includeEditorAccent.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.sober.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.panelHarmony.addEventListener("change", () => updatePreviewAndApply(0));'));
+  assert.ok(html.includes('vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id });'));
+  assert.equal(html.includes("Click Apply colors to write it."), false);
   assert.ok(html.includes("function scheduleApply(delay)"));
   assert.equal(html.includes("syncEndFromRelationship"), false);
   assert.equal(html.includes("getEffectiveEndColor"), false);

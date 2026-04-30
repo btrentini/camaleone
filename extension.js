@@ -233,6 +233,15 @@ async function openPicker(context) {
       pickerPanel.webview.postMessage({ type: "favorites", favorites });
       postPickerStatus("ok", "Deleted favourite color set.");
     }
+
+    if (message.type === "applyFavorite") {
+      try {
+        const result = await applyFavoriteById(context, message.favoriteId);
+        postPickerStatus("ok", `Applied ${result.startColor} to ${result.endColor} in ${result.targetLabel} settings.`);
+      } catch (error) {
+        postPickerStatus("error", error instanceof Error ? error.message : String(error));
+      }
+    }
   }, null, context.subscriptions);
 }
 
@@ -346,7 +355,14 @@ async function applyFavoriteCommand(context) {
     return;
   }
 
-  await applyColorsWithMessage(context, picked.favorite);
+  try {
+    const result = await applyFavoriteById(context, picked.favorite.id);
+    vscode.window.showInformationMessage(
+      `Camaleone applied ${result.startColor} to ${result.endColor} in ${result.targetLabel} settings.`
+    );
+  } catch (error) {
+    vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
+  }
 }
 
 async function applyColorsWithMessage(context, options) {
@@ -915,6 +931,14 @@ async function deleteFavorite(context, favoriteId) {
   const favorites = getFavorites(context).filter((favorite) => favorite.id !== favoriteId);
   await context.globalState.update(FAVORITES_KEY, favorites);
   return favorites;
+}
+
+async function applyFavoriteById(context, favoriteId) {
+  const favorite = getFavorites(context).find((entry) => entry.id === favoriteId);
+  if (!favorite) {
+    throw new Error("Saved favourite color set not found.");
+  }
+  return applyColors(context, favorite);
 }
 
 function createFavoriteId() {
@@ -2621,7 +2645,7 @@ function getPickerHtml(webview, state) {
         return;
       }
       setChoices(favorite);
-      setStatus("Loaded favourite color set. Click Apply colors to write it.", "ok");
+      vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id });
     }
 
     function postDeleteFavorite() {
@@ -2653,6 +2677,7 @@ module.exports = {
     EXTENSION_COLOR_KEYS,
     SURFACE_CONFIGS,
     applyColors,
+    applyFavoriteById,
     createColorCustomizations,
     createIdeDefaultChoices,
     createSurprisePalette,
