@@ -12,7 +12,15 @@ Pick a start and end color, generate palettes with `Surprise me`, keep the resul
 
 It is built for people who work across many projects and want a fast visual cue for each window. Save favourite palettes, apply them again later, restore the colors Camaleone replaced, or reset cleanly to IDE defaults whenever you need to.
 
-> "It's way better than other solutions like Peacock."
+## What Users Say
+
+> "Way better than Peacock!"
+>
+> "It's now so much easier to switch contexts."
+>
+> "It's just beautiful."
+>
+> "Simple to use."
 
 ## Marketplace Screenshots
 
