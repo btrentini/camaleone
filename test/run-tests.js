@@ -659,6 +659,25 @@ test("preloaded favourites can be edited by saving over their preset name", asyn
   assert.equal(favorites.length, 17);
 });
 
+test("webview save favourite uses provided modal name without native input", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento(),
+    workspaceState: createMemento()
+  };
+
+  const favorites = await testApi.saveFavorite(context, nonSoberChoices({
+    favoriteName: "Centered Modal Favourite",
+    startColor: "#123456",
+    endColor: "#654321"
+  }), { promptForName: false });
+
+  assert.equal(inputBoxRequests.length, 0);
+  assert.equal(favorites[0].name, "Centered Modal Favourite");
+  assert.equal(context.globalState.get("camaleone.favorites", [])[0].name, "Centered Modal Favourite");
+});
+
 test("reset to default removes Camaleone-managed color keys and keeps unrelated customizations", async () => {
   resetState();
   const context = {
@@ -810,6 +829,7 @@ test("picker html contains the simplified workflow controls", () => {
     "Sober",
     "Customize",
     "Save as favourite...",
+    "Save as favourite",
     "Options",
     "Color behavior",
     "Target",
@@ -850,7 +870,13 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("choose from the list..."));
   assert.ok(html.includes("select.placeholder"));
   assert.ok(html.includes("let selectedFavoriteName;"));
-  assert.ok(html.includes("favoriteName: selectedFavoriteName"));
+  assert.ok(html.includes('id="favoriteModal"'));
+  assert.ok(html.includes('role="dialog"'));
+  assert.ok(html.includes('id="favoriteNameInput"'));
+  assert.ok(html.includes("openSaveFavoriteModal"));
+  assert.ok(html.includes("confirmSaveFavorite"));
+  assert.ok(html.includes("closeSaveFavoriteModal"));
+  assert.ok(html.includes("favoriteName,"));
   assert.ok(html.includes("selectedFavoriteName = favorite.name;"));
   assert.ok(html.includes('elements.favorites.addEventListener("change", () =>'));
   assert.equal(html.includes('id="applyFavorite"'), false);

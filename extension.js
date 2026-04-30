@@ -304,7 +304,7 @@ async function openPicker(context) {
     // Favorite actions round-trip through extension state so built-ins and saved overrides stay consistent.
     if (message.type === "saveFavorite") {
       try {
-        const favorites = await saveFavorite(context, message);
+        const favorites = await saveFavorite(context, message, { promptForName: false });
         pickerPanel.webview.postMessage({ type: "favorites", favorites });
         postPickerStatus("ok", "Saved favourite color set.");
       } catch (error) {
@@ -1123,36 +1123,54 @@ function normalizeFavorite(favorite, builtin) {
 }
 
 /**
- * Prompts for a favorite name and stores the current color choices.
+ * Validates and normalizes a favorite display name.
  */
-async function saveFavorite(context, payload) {
+function normalizeFavoriteName(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) {
+    throw new Error("Give the favourite a name.");
+  }
+  if (trimmed.length > 48) {
+    throw new Error("Use 48 characters or fewer.");
+  }
+  return trimmed;
+}
+
+/**
+ * Prompts for or accepts a favorite name and stores the current color choices.
+ */
+async function saveFavorite(context, payload, options = {}) {
   const choices = sanitizeChoices(payload);
   const suggestedName = payload && typeof payload.favoriteName === "string" ? payload.favoriteName.trim() : "";
-  const name = await vscode.window.showInputBox({
-    title: "Camaleone",
-    prompt: "Name this favourite color set",
-    placeHolder: "e.g., 'Project Green Focus'",
-    value: suggestedName,
-    validateInput: (value) => {
-      const trimmed = String(value || "").trim();
-      if (!trimmed) {
-        return "Give the favourite a name.";
-      }
-      if (trimmed.length > 48) {
-        return "Use 48 characters or fewer.";
-      }
-      return undefined;
-    }
-  });
+  let name = suggestedName;
 
-  if (!name) {
-    throw new Error("cancelled");
+  if (options.promptForName !== false) {
+    name = await vscode.window.showInputBox({
+      title: "Camaleone",
+      prompt: "Name this favourite color set",
+      placeHolder: "e.g., 'Project Green Focus'",
+      value: suggestedName,
+      validateInput: (value) => {
+        try {
+          normalizeFavoriteName(value);
+          return undefined;
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      }
+    });
+
+    if (!name) {
+      throw new Error("cancelled");
+    }
   }
+
+  const normalizedName = normalizeFavoriteName(name);
 
   const favorites = getSavedFavorites(context);
   const nextFavorite = {
     id: createFavoriteId(),
-    name: name.trim(),
+    name: normalizedName,
     createdAt: new Date().toISOString(),
     ...choices
   };
@@ -2257,6 +2275,42 @@ function getPickerHtml(webview, state) {
       color: var(--vscode-testing-iconFailed);
     }
 
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.48);
+    }
+
+    .modal-backdrop[hidden] {
+      display: none;
+    }
+
+    .modal {
+      display: grid;
+      gap: 14px;
+      width: min(420px, 100%);
+      padding: 16px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 8px;
+      color: var(--vscode-foreground);
+      background: var(--vscode-editor-background);
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.38);
+    }
+
+    .modal h2 {
+      font-size: 14px;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .modal-actions {
+      justify-content: end;
+    }
+
     @media (max-width: 860px) {
       body {
         padding: 16px;
@@ -2417,6 +2471,21 @@ function getPickerHtml(webview, state) {
     </section>
   </main>
 
+  <div id="favoriteModal" class="modal-backdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="favoriteModalTitle">
+      <h2 id="favoriteModalTitle">Save as favourite</h2>
+      <div class="field">
+        <label for="favoriteNameInput">Name</label>
+        <input id="favoriteNameInput" type="text" maxlength="48" spellcheck="false" placeholder="e.g., 'Project Green Focus'">
+      </div>
+      <div id="favoriteNameError" class="status error" role="alert"></div>
+      <div class="button-row compact modal-actions">
+        <button id="favoriteCancel" class="secondary" type="button">Cancel</button>
+        <button id="favoriteConfirm" class="primary-action" type="button">${saveFavoriteIconHtml}<span>Save</span></button>
+      </div>
+    </section>
+  </div>
+
   <script nonce="${nonce}">
     /**
      * Browser-side picker controller.
@@ -2449,6 +2518,11 @@ function getPickerHtml(webview, state) {
       apply: document.getElementById("apply"),
       clear: document.getElementById("clear"),
       resetDefault: document.getElementById("resetDefault"),
+      favoriteModal: document.getElementById("favoriteModal"),
+      favoriteNameInput: document.getElementById("favoriteNameInput"),
+      favoriteNameError: document.getElementById("favoriteNameError"),
+      favoriteCancel: document.getElementById("favoriteCancel"),
+      favoriteConfirm: document.getElementById("favoriteConfirm"),
       status: document.getElementById("status")
     };
 
@@ -2497,7 +2571,27 @@ function getPickerHtml(webview, state) {
       elements.clear.addEventListener("click", postClear);
       elements.resetDefault.addEventListener("click", postResetDefault);
       elements.surprise.addEventListener("click", surpriseMe);
-      elements.saveFavorite.addEventListener("click", postSaveFavorite);
+      elements.saveFavorite.addEventListener("click", openSaveFavoriteModal);
+      elements.favoriteConfirm.addEventListener("click", confirmSaveFavorite);
+      elements.favoriteCancel.addEventListener("click", closeSaveFavoriteModal);
+      elements.favoriteModal.addEventListener("click", (event) => {
+        if (event.target === elements.favoriteModal) {
+          closeSaveFavoriteModal();
+        }
+      });
+      elements.favoriteNameInput.addEventListener("input", () => {
+        elements.favoriteNameError.textContent = "";
+      });
+      elements.favoriteNameInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          confirmSaveFavorite();
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeSaveFavoriteModal();
+        }
+      });
       elements.favorites.addEventListener("change", () => {
         syncFavoriteActions();
         applySelectedFavorite();
@@ -3208,12 +3302,56 @@ function getPickerHtml(webview, state) {
     }
 
     /**
+     * Opens the in-window favorite naming modal.
+     */
+    function openSaveFavoriteModal() {
+      elements.favoriteNameInput.value = selectedFavoriteName || "";
+      elements.favoriteNameError.textContent = "";
+      elements.favoriteModal.hidden = false;
+      requestAnimationFrame(() => {
+        elements.favoriteNameInput.focus();
+        elements.favoriteNameInput.select();
+      });
+    }
+
+    /**
+     * Closes the in-window favorite naming modal.
+     */
+    function closeSaveFavoriteModal() {
+      elements.favoriteModal.hidden = true;
+      elements.favoriteNameError.textContent = "";
+      elements.saveFavorite.focus();
+    }
+
+    /**
+     * Returns a valid favorite name or shows an inline modal error.
+     */
+    function readFavoriteName() {
+      const name = elements.favoriteNameInput.value.trim();
+      if (!name) {
+        elements.favoriteNameError.textContent = "Give the favourite a name.";
+        return undefined;
+      }
+      if (name.length > 48) {
+        elements.favoriteNameError.textContent = "Use 48 characters or fewer.";
+        return undefined;
+      }
+      return name;
+    }
+
+    /**
      * Sends the current choices to be saved as a named favorite.
      */
-    function postSaveFavorite() {
+    function confirmSaveFavorite() {
+      const favoriteName = readFavoriteName();
+      if (!favoriteName) {
+        return;
+      }
+      selectedFavoriteName = favoriteName;
+      closeSaveFavoriteModal();
       vscode.postMessage({
         type: "saveFavorite",
-        favoriteName: selectedFavoriteName,
+        favoriteName,
         ...collectChoices()
       });
     }
