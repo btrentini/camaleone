@@ -35,6 +35,17 @@ Warnings such as `DEP0040` for `punycode` or `ExperimentalWarning: SQLite is an 
 - Source PNGs: `assets/icons/png/`
 - ICO exports: `assets/icons/ico/`
 
+## Marketplace Screenshots
+
+![Camaleone color picker with a blue and green workspace palette](assets/screenshots/marketplace/camaleone-0.png)
+![Camaleone sober mode example](assets/screenshots/marketplace/camaleone-1.png)
+![Camaleone custom surface controls](assets/screenshots/marketplace/camaleone-2.png)
+![Camaleone favourite palette workflow](assets/screenshots/marketplace/camaleone-3.png)
+![Camaleone warm palette example](assets/screenshots/marketplace/camaleone-4.png)
+![Camaleone cool palette example](assets/screenshots/marketplace/camaleone-5.png)
+![Camaleone panel and status color example](assets/screenshots/marketplace/camaleone-6.png)
+![Camaleone full picker layout example](assets/screenshots/marketplace/camaleone-7.png)
+
 ## Settings
 
 - `camaleone.startColor`

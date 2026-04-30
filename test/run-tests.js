@@ -787,9 +787,22 @@ test("manifest and generated icon assets use the organized paths", () => {
     "assets/icons/ico/camaleone-sil-0.ico",
     "assets/icons/ico/camaleone-sil-1.ico",
     "assets/icons/ico/camaleone-sil-2.ico",
-    "assets/icons/ico/camaleone-sil-3.ico"
+    "assets/icons/ico/camaleone-sil-3.ico",
+    "assets/screenshots/marketplace/camaleone-0.png",
+    "assets/screenshots/marketplace/camaleone-1.png",
+    "assets/screenshots/marketplace/camaleone-2.png",
+    "assets/screenshots/marketplace/camaleone-3.png",
+    "assets/screenshots/marketplace/camaleone-4.png",
+    "assets/screenshots/marketplace/camaleone-5.png",
+    "assets/screenshots/marketplace/camaleone-6.png",
+    "assets/screenshots/marketplace/camaleone-7.png"
   ]) {
     assert.equal(fs.existsSync(path.join(repoRoot, relativePath)), true, `${relativePath} should exist`);
+  }
+
+  const readme = textFile("README.md");
+  for (let index = 0; index <= 7; index += 1) {
+    assert.ok(readme.includes(`assets/screenshots/marketplace/camaleone-${index}.png`));
   }
 });
 
