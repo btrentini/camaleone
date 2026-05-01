@@ -914,10 +914,16 @@ h3 {
 }
 
 .qr-card img {
+  display: block;
   width: 132px;
   height: 132px;
   border-radius: 6px;
   background: #ffffff;
+}
+
+.qr-image-link {
+  display: block;
+  border-radius: 6px;
 }
 
 .qr-card span,
@@ -929,10 +935,38 @@ h3 {
 
 .wallet-card {
   display: grid;
-  align-content: center;
-  gap: 10px;
+  grid-template-columns: 118px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
   min-width: 0;
   padding: 20px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.wallet-card:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(101, 232, 255, 0.44);
+  transform: translateY(-1px);
+}
+
+.wallet-card:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+.wallet-qr {
+  width: 118px;
+  height: 118px;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.wallet-details {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
 }
 
 .wallet-card code {
@@ -941,6 +975,19 @@ h3 {
   color: var(--ink);
   font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   font-size: 14px;
+}
+
+.support-link,
+.wallet-link {
+  color: var(--cyan);
+  font-size: 13px;
+  font-weight: 820;
+  text-decoration: none;
+}
+
+.support-link:hover,
+.wallet-link:hover {
+  text-decoration: underline;
 }
 
 .testimonial-card {
@@ -1192,6 +1239,20 @@ h3 {
   .descriptor-list div {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+
+  .wallet-card {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .wallet-details {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .wallet-card code {
+    text-align: center;
   }
 
   .footer-grid {
