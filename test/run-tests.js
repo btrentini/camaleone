@@ -222,8 +222,10 @@ test("defaults use manual relationship with compact title activity and panel sam
 
   const samples = Object.fromEntries(testApi.SURFACE_CONFIGS.map((surface) => [surface.id, surface.sample]));
   assert.equal(samples.titleBar, 0);
+  assert.equal(samples.remoteIndicator, 0.08);
   assert.equal(samples.activityBar, 0.12);
   assert.equal(samples.panel, 0.34);
+  assert.ok(samples.remoteIndicator > samples.titleBar && samples.remoteIndicator < samples.activityBar);
   assert.ok(samples.activityBar - samples.titleBar < samples.panel - samples.activityBar);
   assert.ok(samples.panel < 0.5);
 });
@@ -454,6 +456,35 @@ test("color relationship changes the palette path without replacing selected col
   assert.notEqual(complementary["panel.border"], manual["panel.border"]);
 });
 
+test("remote host indicator uses dedicated status bar item colors", () => {
+  resetState();
+  const sober = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#112233",
+    endColor: "#445566",
+    intensity: 100,
+    sober: true
+  });
+
+  assert.match(sober["statusBarItem.remoteBackground"], /^#[0-9a-f]{6}$/);
+  assert.match(sober["statusBarItem.remoteHoverBackground"], /^#[0-9a-f]{6}$/);
+  assert.ok(["#000000", "#ffffff"].includes(sober["statusBarItem.remoteForeground"]));
+  assert.ok(["#000000", "#ffffff"].includes(sober["statusBarItem.remoteHoverForeground"]));
+  assert.notEqual(sober["statusBarItem.remoteBackground"], "#1e1e1e");
+
+  const customized = testApi.createColorCustomizations(nonSoberChoices({
+    startColor: "#112233",
+    endColor: "#445566",
+    intensity: 100,
+    surfaceOverrides: {
+      remoteIndicator: "#ffffff"
+    }
+  }));
+
+  assert.equal(customized["statusBarItem.remoteBackground"], "#ffffff");
+  assert.equal(customized["statusBarItem.remoteForeground"], "#000000");
+});
+
 test("sober mode neutralizes generated surfaces but allows explicit custom surfaces", () => {
   resetState();
   const sober = testApi.createColorCustomizations({
@@ -467,6 +498,7 @@ test("sober mode neutralizes generated surfaces but allows explicit custom surfa
     surfaceOverrides: {
       sideBar: "#ffffff",
       panel: "#ffffff",
+      remoteIndicator: "#ffffff",
       buttons: "#ffffff"
     }
   });
@@ -476,6 +508,7 @@ test("sober mode neutralizes generated surfaces but allows explicit custom surfa
   assert.equal(sober["statusBar.background"], "#445566");
   assert.notEqual(sober["sideBar.background"], "#1e1e1e");
   assert.notEqual(sober["panel.border"], "#1e1e1e");
+  assert.equal(sober["statusBarItem.remoteBackground"], "#ffffff");
   assert.equal(sober["button.background"], "#ffffff");
   assert.notEqual(sober["tab.activeBorderTop"], "#1e1e1e");
   assert.equal(sober["editor.selectionBackground"], undefined);
@@ -496,6 +529,7 @@ test("default sober mode keeps generated secondary surfaces neutral", () => {
 
   assert.equal(sober["sideBar.background"], "#1e1e1e");
   assert.equal(sober["panel.border"], "#1e1e1e");
+  assert.notEqual(sober["statusBarItem.remoteBackground"], "#1e1e1e");
   assert.equal(sober["button.background"], "#1e1e1e");
   assert.equal(sober["tab.activeBorderTop"], "#1e1e1e");
   assert.equal(sober["editor.selectionBackground"], undefined);
@@ -570,6 +604,7 @@ test("applying colors replaces stale managed workspace settings", async () => {
   };
   configValues.set("workbench.colorCustomizations", {
     "titleBar.activeBackground": "#111111",
+    "statusBarItem.remoteBackground": "#999999",
     "editor.selectionBackground": "#222222",
     "editorRuler.foreground": "#333333",
     "[Cursor Dark Midnight]": {
@@ -589,6 +624,8 @@ test("applying colors replaces stale managed workspace settings", async () => {
 
   const colors = configValues.get("workbench.colorCustomizations");
   assert.equal(colors["titleBar.activeBackground"], "#112233");
+  assert.notEqual(colors["statusBarItem.remoteBackground"], "#999999");
+  assert.match(colors["statusBarItem.remoteBackground"], /^#[0-9a-f]{6}$/);
   assert.equal(colors["editor.selectionBackground"], undefined);
   assert.equal(colors["editorRuler.foreground"], "#333333");
   assert.deepEqual(colors["[Cursor Dark Midnight]"], {
@@ -939,6 +976,8 @@ test("picker html contains the simplified workflow controls", () => {
     "Manual",
     "Analogous",
     "Complementary",
+    "Remote Host",
+    "Bottom-left Remote/SSH indicator",
     "Revert",
     "Tint editor selection/cursor",
     "Uses the start color as the anchor",

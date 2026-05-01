@@ -60,6 +60,10 @@ const EXTENSION_COLOR_KEYS = [
   "statusBar.foreground",
   "statusBar.noFolderBackground",
   "statusBarItem.hoverBackground",
+  "statusBarItem.remoteBackground",
+  "statusBarItem.remoteForeground",
+  "statusBarItem.remoteHoverBackground",
+  "statusBarItem.remoteHoverForeground",
   "tab.activeBorderTop",
   "terminalCursor.foreground",
   "titleBar.activeBackground",
@@ -114,6 +118,13 @@ const SURFACE_CONFIGS = [
     sample: 1,
     strength: 1,
     description: "Bottom bar. Usually the strongest end-color signal."
+  },
+  {
+    id: "remoteIndicator",
+    label: "Remote Host",
+    sample: 0.08,
+    strength: 1,
+    description: "Bottom-left Remote/SSH indicator that shows the connected machine name."
   },
   {
     id: "buttons",
@@ -1449,6 +1460,8 @@ function createColorCustomizations(choices) {
   const sideForeground = contrastColor(side);
   const panel = surface("panel");
   const status = surface("statusBar");
+  const remoteIndicator = surface("remoteIndicator");
+  const remoteHoverBackground = adjustForHover(remoteIndicator);
   const buttons = surface("buttons");
   const editorAccent = surface("editorAccent");
   const mutedTitle = blendColor(base, title, 0.68);
@@ -1499,6 +1512,10 @@ function createColorCustomizations(choices) {
     "statusBar.foreground": contrastColor(status),
     "statusBar.noFolderBackground": mutedStatus,
     "statusBarItem.hoverBackground": withAlpha(contrastColor(status), 0.16),
+    "statusBarItem.remoteBackground": remoteIndicator,
+    "statusBarItem.remoteForeground": contrastColor(remoteIndicator),
+    "statusBarItem.remoteHoverBackground": remoteHoverBackground,
+    "statusBarItem.remoteHoverForeground": contrastColor(remoteHoverBackground),
     "tab.activeBorderTop": panel,
     "terminalCursor.foreground": status,
     "titleBar.activeBackground": title,
@@ -1543,6 +1560,8 @@ function createSoberColorCustomizations(startColor, endColor, colorRelationship,
   const side = blendSurface("sideBar", neutral);
   const panel = blendSurface("panel", neutral);
   const status = blendSurface("statusBar", generatedSurfaceColor(1));
+  const remoteIndicator = blendSurface("remoteIndicator", generatedSurfaceColor(surfaceSample("remoteIndicator", 0.08)));
+  const remoteHoverBackground = adjustForHover(remoteIndicator);
   const buttons = blendSurface("buttons", neutral);
   const editorAccent = blendSurface("editorAccent", generatedSurfaceColor(surfaceSample("editorAccent", 0.5)));
   const sideForeground = contrastColor(side);
@@ -1592,6 +1611,10 @@ function createSoberColorCustomizations(startColor, endColor, colorRelationship,
     "statusBar.foreground": contrastColor(status),
     "statusBar.noFolderBackground": mutedStatus,
     "statusBarItem.hoverBackground": withAlpha(contrastColor(status), 0.16),
+    "statusBarItem.remoteBackground": remoteIndicator,
+    "statusBarItem.remoteForeground": contrastColor(remoteIndicator),
+    "statusBarItem.remoteHoverBackground": remoteHoverBackground,
+    "statusBarItem.remoteHoverForeground": contrastColor(remoteHoverBackground),
     "tab.activeBorderTop": panel,
     "terminalCursor.foreground": status,
     "titleBar.activeBackground": title,
@@ -3216,6 +3239,11 @@ function getPickerHtml(webview, state) {
               return monochromatic
                 ? harmonyColor(start, 1, harmonyMode)
                 : paletteColor(start, end, 1, elements.panelHarmony.value);
+            }
+            if (surface.id === "remoteIndicator") {
+              return monochromatic
+                ? harmonyColor(start, surface.sample, harmonyMode)
+                : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
             }
             if (surface.id === "editorAccent" && elements.includeEditorAccent.checked) {
               return monochromatic
