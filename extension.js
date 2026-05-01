@@ -240,7 +240,7 @@ function activate(context) {
 function deactivate() {}
 
 /**
- * Provides an empty Activity Bar view so the welcome actions can drive Camaleone.
+ * Provides an empty Activity Bar setup view so welcome actions can drive Camaleone.
  */
 function createActivityBarProvider() {
   return {

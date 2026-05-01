@@ -33,8 +33,8 @@
         "title": "Open Colour Picker",
         "category": "Camaleone",
         "icon": {
-          "light": "assets/icons/svg/camaleone-activity-dark.svg",
-          "dark": "assets/icons/svg/camaleone-activity-light.svg"
+          "light": "assets/icons/ico/camaleone-bar-0.ico",
+          "dark": "assets/icons/ico/camaleone-bar-1.ico"
         }
       },
       {
@@ -78,7 +78,7 @@
         {
           "id": "camaleone",
           "title": "Camaleone",
-          "icon": "assets/icons/svg/camaleone-activity.svg"
+          "icon": "assets/icons/ico/camaleone-bar-0.ico"
         }
       ]
     },
@@ -86,15 +86,15 @@
       "camaleone": [
         {
           "id": "camaleone.controls",
-          "name": "Controls",
-          "icon": "assets/icons/svg/camaleone-activity.svg"
+          "name": "Setup",
+          "icon": "assets/icons/ico/camaleone-bar-1.ico"
         }
       ]
     },
     "viewsWelcome": [
       {
         "view": "camaleone.controls",
-        "contents": "[Open Colour Picker](command:camaleone.openPicker)\n\n[Surprise Me](command:camaleone.surpriseMe)\n\n[Restore Previous](command:camaleone.clear)"
+        "contents": "[Open Camaleone Setup](command:camaleone.openPicker)\n\n[Surprise Me](command:camaleone.surpriseMe)\n\n[Restore Previous](command:camaleone.clear)"
       }
     ],
     "configuration": {

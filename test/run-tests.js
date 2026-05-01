@@ -1072,16 +1072,17 @@ test("manifest and generated icon assets use the organized paths", () => {
   assert.deepEqual(manifest.contributes.viewsContainers.activitybar[0], {
     id: "camaleone",
     title: "Camaleone",
-    icon: "assets/icons/svg/camaleone-activity.svg"
+    icon: "assets/icons/ico/camaleone-bar-0.ico"
   });
   assert.equal(manifest.contributes.views.camaleone[0].id, "camaleone.controls");
-  assert.equal(manifest.contributes.views.camaleone[0].name, "Controls");
-  assert.equal(manifest.contributes.views.camaleone[0].icon, "assets/icons/svg/camaleone-activity.svg");
+  assert.equal(manifest.contributes.views.camaleone[0].name, "Setup");
+  assert.equal(manifest.contributes.views.camaleone[0].icon, "assets/icons/ico/camaleone-bar-1.ico");
   assert.ok(manifest.contributes.viewsWelcome[0].contents.includes("command:camaleone.openPicker"));
+  assert.ok(manifest.contributes.viewsWelcome[0].contents.includes("Open Camaleone Setup"));
 
   const openPickerCommand = manifest.contributes.commands.find((entry) => entry.command === "camaleone.openPicker");
-  assert.equal(openPickerCommand.icon.light, "assets/icons/svg/camaleone-activity-dark.svg");
-  assert.equal(openPickerCommand.icon.dark, "assets/icons/svg/camaleone-activity-light.svg");
+  assert.equal(openPickerCommand.icon.light, "assets/icons/ico/camaleone-bar-0.ico");
+  assert.equal(openPickerCommand.icon.dark, "assets/icons/ico/camaleone-bar-1.ico");
 
   for (const relativePath of [
     "assets/icons/store/camaleone.png",
@@ -1097,6 +1098,8 @@ test("manifest and generated icon assets use the organized paths", () => {
     "assets/icons/ico/camaleone-sil-1.ico",
     "assets/icons/ico/camaleone-sil-2.ico",
     "assets/icons/ico/camaleone-sil-3.ico",
+    "assets/icons/ico/camaleone-bar-0.ico",
+    "assets/icons/ico/camaleone-bar-1.ico",
     "assets/icons/svg/camaleone-activity.svg",
     "assets/icons/svg/camaleone-activity-dark.svg",
     "assets/icons/svg/camaleone-activity-light.svg",
