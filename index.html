@@ -381,6 +381,8 @@
           <div class="cta-actions">
             <a class="button primary" href="https://marketplace.visualstudio.com/items?itemName=trentinium.camaleone">VS Code Marketplace</a>
             <a class="button secondary on-light" href="https://open-vsx.org/extension/trentinium/camaleone">Open VSX</a>
+            <a class="button secondary on-light" href="https://paypal.me/brunotrentini" target="_blank" rel="noopener noreferrer">Buy me a coffee</a>
+            <a class="button secondary on-light" href="https://www.trentini.fyi" target="_blank" rel="noopener noreferrer">trentini.fyi</a>
             <a class="button secondary on-light icon-link" href="https://github.com/btrentini/camaleone">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M12 1.2C6 1.2 1.2 6.1 1.2 12.1c0 4.8 3.1 8.9 7.4 10.3.5.1.7-.2.7-.5v-1.9c-3 .7-3.7-1.3-3.7-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.6 1.1 1.6 1.1.9 1.6 2.5 1.1 3.1.8.1-.7.4-1.1.7-1.4-2.4-.3-5-1.2-5-5.4 0-1.2.4-2.2 1.1-3-.1-.3-.5-1.5.1-3 0 0 .9-.3 3 1.1.9-.2 1.8-.4 2.7-.4s1.9.1 2.7.4c2.1-1.4 3-1.1 3-1.1.6 1.5.2 2.7.1 3 .7.8 1.1 1.8 1.1 3 0 4.2-2.6 5.1-5 5.4.4.3.7 1 .7 2v2.8c0 .3.2.6.7.5 4.3-1.4 7.4-5.5 7.4-10.3C22.8 6.1 18 1.2 12 1.2Z"></path>
@@ -415,22 +417,53 @@
         const thumbs = Array.from(gallery.querySelectorAll("[data-gallery-thumb]"));
         const prev = gallery.querySelector("[data-gallery-prev]");
         const next = gallery.querySelector("[data-gallery-next]");
+        const autoDelay = 4200;
+        const userPauseDelay = 30000;
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
         let current = 0;
+        let sequenceStart = 0;
+        let autoTimer;
+        let fadeTimer;
+
+        const sequencePosition = (index) => (index - sequenceStart + thumbs.length) % thumbs.length;
+        const sequenceIndex = (position) => (sequenceStart + position) % thumbs.length;
+
+        const clearAutoTimer = () => {
+          if (autoTimer) {
+            window.clearTimeout(autoTimer);
+            autoTimer = undefined;
+          }
+        };
+
+        const scheduleAuto = (delay = autoDelay) => {
+          clearAutoTimer();
+          if (reduceMotion.matches || thumbs.length < 2) {
+            return;
+          }
+
+          autoTimer = window.setTimeout(() => {
+            const nextPosition = (sequencePosition(current) + 1) % thumbs.length;
+            setActive(sequenceIndex(nextPosition));
+            scheduleAuto();
+          }, delay);
+        };
 
         const setActive = (index, options = {}) => {
           current = (index + thumbs.length) % thumbs.length;
           const thumb = thumbs[current];
+          const position = sequencePosition(current);
+          window.clearTimeout(fadeTimer);
           image.classList.add("is-switching");
 
-          window.setTimeout(() => {
+          fadeTimer = window.setTimeout(() => {
             image.src = thumb.dataset.image;
             image.alt = thumb.dataset.alt;
             fullLink.href = thumb.dataset.image;
             openLink.href = thumb.dataset.image;
             title.textContent = thumb.dataset.title;
             copy.textContent = thumb.dataset.caption;
-            count.textContent = `${current + 1} / ${thumbs.length}`;
-            progress.style.setProperty("--gallery-progress", `${((current + 1) / thumbs.length) * 100}%`);
+            count.textContent = `${position + 1} / ${thumbs.length}`;
+            progress.style.setProperty("--gallery-progress", `${((position + 1) / thumbs.length) * 100}%`);
 
             thumbs.forEach((button, thumbIndex) => {
               button.setAttribute("aria-current", thumbIndex === current ? "true" : "false");
@@ -440,26 +473,34 @@
             if (options.focus) {
               thumb.focus();
             }
-          }, 120);
+          }, 180);
+        };
+
+        const setUserSelected = (index, options = {}) => {
+          sequenceStart = (index + thumbs.length) % thumbs.length;
+          setActive(index, options);
+          scheduleAuto(userPauseDelay);
         };
 
         thumbs.forEach((thumb, index) => {
-          thumb.addEventListener("click", () => setActive(index));
+          thumb.addEventListener("click", () => setUserSelected(index));
         });
 
-        prev.addEventListener("click", () => setActive(current - 1));
-        next.addEventListener("click", () => setActive(current + 1));
+        prev.addEventListener("click", () => setUserSelected(current - 1));
+        next.addEventListener("click", () => setUserSelected(current + 1));
 
         gallery.addEventListener("keydown", (event) => {
           if (event.key === "ArrowLeft") {
             event.preventDefault();
-            setActive(current - 1, { focus: true });
+            setUserSelected(current - 1, { focus: true });
           }
           if (event.key === "ArrowRight") {
             event.preventDefault();
-            setActive(current + 1, { focus: true });
+            setUserSelected(current + 1, { focus: true });
           }
         });
+
+        scheduleAuto();
       })();
 
       (() => {

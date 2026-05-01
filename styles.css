@@ -321,27 +321,9 @@ a {
 
 .stats-fact {
   position: relative;
-  min-width: 210px;
-  padding: 13px 16px 14px;
-  border: 1px solid rgba(101, 232, 255, 0.28);
-  border-radius: var(--radius);
-  background: rgba(5, 7, 13, 0.42);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
-}
-
-.stats-fact::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(135deg, rgba(101, 232, 255, 0.12), rgba(255, 178, 56, 0.08));
-  opacity: 0;
-  transition: opacity 220ms ease;
-  pointer-events: none;
-}
-
-.stats-fact[data-loaded="true"]::before {
-  opacity: 1;
+  min-width: 154px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(244, 247, 251, 0.2);
 }
 
 .stats-fact dt,
@@ -351,16 +333,16 @@ a {
 }
 
 .hero-facts .stats-fact dd {
-  margin-top: 5px;
+  margin-top: 3px;
   color: #ffffff;
-  font-size: 30px;
-  line-height: 1;
+  font-size: 18px;
+  line-height: 1.15;
 }
 
 .stats-fact p {
-  margin: 8px 0 0;
+  margin: 4px 0 0;
   color: rgba(244, 247, 251, 0.62);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.35;
 }
 
@@ -576,14 +558,15 @@ h3 {
 }
 
 .gallery-frame img {
+  opacity: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: opacity 260ms ease, transform 320ms ease;
+  transition: opacity 320ms ease, transform 360ms ease;
 }
 
 .gallery-frame img.is-switching {
-  opacity: 0.2;
+  opacity: 0.08;
   transform: scale(0.992);
 }
 
@@ -893,7 +876,7 @@ h3 {
 
 .support-panel {
   display: grid;
-  grid-template-columns: 172px minmax(0, 1fr) minmax(190px, 0.78fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   align-items: stretch;
 }
@@ -909,8 +892,11 @@ h3 {
 .qr-card {
   display: grid;
   gap: 12px;
+  align-content: start;
   justify-items: center;
-  padding: 18px;
+  min-height: 244px;
+  padding: 22px;
+  text-align: center;
 }
 
 .qr-card img {
@@ -935,12 +921,14 @@ h3 {
 
 .wallet-card {
   display: grid;
-  grid-template-columns: 118px minmax(0, 1fr);
-  align-items: center;
-  gap: 16px;
+  align-content: start;
+  justify-items: center;
+  gap: 12px;
   min-width: 0;
-  padding: 20px;
+  min-height: 244px;
+  padding: 22px;
   color: inherit;
+  text-align: center;
   text-decoration: none;
   transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
@@ -957,8 +945,8 @@ h3 {
 }
 
 .wallet-qr {
-  width: 118px;
-  height: 118px;
+  width: 132px;
+  height: 132px;
   border-radius: 6px;
   background: #ffffff;
 }
@@ -966,19 +954,21 @@ h3 {
 .wallet-details {
   display: grid;
   gap: 10px;
+  justify-items: center;
   min-width: 0;
 }
 
 .wallet-card code {
   display: block;
   overflow-wrap: anywhere;
+  text-align: center;
   color: var(--ink);
   font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   font-size: 14px;
 }
 
 .support-link,
-.wallet-link {
+.wallet-card .wallet-link {
   color: var(--cyan);
   font-size: 13px;
   font-weight: 820;
@@ -986,17 +976,18 @@ h3 {
 }
 
 .support-link:hover,
-.wallet-link:hover {
+.wallet-card:hover .wallet-link {
   text-decoration: underline;
 }
 
 .testimonial-card {
   position: relative;
   display: grid;
-  align-content: center;
-  gap: 10px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
   min-width: 0;
-  padding: 16px;
+  padding: 18px;
   overflow: hidden;
 }
 
@@ -1013,6 +1004,7 @@ h3 {
 
 .testimonial-label {
   position: relative;
+  grid-column: 1 / -1;
   margin: 0;
   color: var(--cyan);
   font-size: 12px;
@@ -1023,13 +1015,8 @@ h3 {
 .testimonial-card figure {
   position: relative;
   margin: 0;
-  padding-top: 9px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.testimonial-card figure:nth-of-type(1) {
-  border-top: 0;
-  padding-top: 0;
+  padding: 0 0 0 13px;
+  border-left: 2px solid rgba(101, 232, 255, 0.42);
 }
 
 .testimonial-card blockquote {
@@ -1037,8 +1024,9 @@ h3 {
   margin: 0;
   color: #ffffff;
   font-size: 14px;
-  font-weight: 820;
-  line-height: 1.28;
+  font-style: italic;
+  font-weight: 740;
+  line-height: 1.36;
 }
 
 .testimonial-card figcaption {
@@ -1156,6 +1144,10 @@ h3 {
   .support-panel {
     grid-template-columns: 1fr;
   }
+
+  .testimonial-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 560px) {
@@ -1253,6 +1245,10 @@ h3 {
 
   .wallet-card code {
     text-align: center;
+  }
+
+  .testimonial-card {
+    grid-template-columns: 1fr;
   }
 
   .footer-grid {
