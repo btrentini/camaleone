@@ -2,7 +2,7 @@
   "name": "camaleone",
   "displayName": "Camaleone",
   "description": "Color for IDE windows. Better than Peacock: gradients, sober mode, presets, favourites, per-surface controls, and restore.",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "publisher": "trentinium",
   "license": "MIT",
   "icon": "assets/icons/ico/camaleone_transparent.ico",
