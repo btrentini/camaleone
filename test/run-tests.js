@@ -14,6 +14,7 @@ const inputBoxResponses = [];
 const inputBoxRequests = [];
 const quickPickResponses = [];
 const quickPickRequests = [];
+const treeDataProviders = new Map();
 
 function createMemento(initial = {}) {
   const store = new Map(Object.entries(initial));
@@ -99,6 +100,10 @@ const vscodeMock = {
         return Promise.resolve(items[response]);
       }
       return Promise.resolve(response);
+    },
+    registerTreeDataProvider(id, provider) {
+      treeDataProviders.set(id, provider);
+      return { dispose() {} };
     }
   },
   workspace: {
@@ -139,6 +144,7 @@ function resetState() {
   inputBoxRequests.length = 0;
   quickPickResponses.length = 0;
   quickPickRequests.length = 0;
+  treeDataProviders.clear();
   configValues.clear();
   vscodeMock.window.activeColorTheme = { kind: 2 };
 }
@@ -175,6 +181,10 @@ test("activates Camaleone commands", () => {
   ]) {
     assert.equal(commands.has(commandId), true, `${commandId} should be registered`);
   }
+
+  assert.equal(treeDataProviders.has("camaleone.controls"), true);
+  const provider = treeDataProviders.get("camaleone.controls");
+  assert.deepEqual(provider.getChildren(), []);
 });
 
 test("sanitizes invalid choices and preserves defaults", () => {
@@ -234,6 +244,55 @@ test("intensity affects custom surface overrides", () => {
   assert.equal(full["titleBar.activeBackground"], "#ff0000");
   assert.notEqual(muted["titleBar.activeBackground"], "#ff0000");
   assert.match(muted["titleBar.activeBackground"], /^#[0-9a-f]{6}$/);
+});
+
+test("sober intensity affects active identity surfaces", () => {
+  resetState();
+  vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
+
+  const full = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#112233",
+    endColor: "#445566",
+    intensity: 100,
+    sober: true
+  });
+  const muted = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#112233",
+    endColor: "#445566",
+    intensity: 25,
+    sober: true
+  });
+
+  assert.equal(full["titleBar.activeBackground"], "#112233");
+  assert.equal(full["statusBar.background"], "#445566");
+  assert.notEqual(muted["titleBar.activeBackground"], full["titleBar.activeBackground"]);
+  assert.notEqual(muted["activityBar.background"], full["activityBar.background"]);
+  assert.notEqual(muted["statusBar.background"], full["statusBar.background"]);
+  assert.equal(muted["sideBar.background"], "#1e1e1e");
+});
+
+test("tint editor adds active editor accents in sober mode", () => {
+  resetState();
+  const chromeOnly = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#112233",
+    endColor: "#445566",
+    includeEditorAccent: false,
+    sober: true
+  });
+  const tintedEditor = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#112233",
+    endColor: "#445566",
+    includeEditorAccent: true,
+    sober: true
+  });
+
+  assert.equal(chromeOnly["editor.selectionBackground"], undefined);
+  assert.match(tintedEditor["editor.selectionBackground"], /^#[0-9a-f]{8}$/);
+  assert.match(tintedEditor["editorCursor.foreground"], /^#[0-9a-f]{6}$/);
 });
 
 test("top command center text contrasts with selected title bar color", () => {
@@ -401,9 +460,9 @@ test("sober mode neutralizes generated surfaces but allows explicit custom surfa
     ...testApi.DEFAULT_CHOICES,
     startColor: "#112233",
     endColor: "#445566",
-    intensity: 25,
-    includeEditorAccent: true,
-    monochromatic: true,
+    intensity: 100,
+    includeEditorAccent: false,
+    monochromatic: false,
     sober: true,
     surfaceOverrides: {
       sideBar: "#ffffff",
@@ -415,10 +474,10 @@ test("sober mode neutralizes generated surfaces but allows explicit custom surfa
   assert.equal(sober["titleBar.activeBackground"], "#112233");
   assert.equal(sober["activityBar.background"], "#172839");
   assert.equal(sober["statusBar.background"], "#445566");
-  assert.equal(sober["sideBar.background"], "#ffffff");
-  assert.equal(sober["panel.border"], "#ffffff");
+  assert.notEqual(sober["sideBar.background"], "#1e1e1e");
+  assert.notEqual(sober["panel.border"], "#1e1e1e");
   assert.equal(sober["button.background"], "#ffffff");
-  assert.equal(sober["tab.activeBorderTop"], "#ffffff");
+  assert.notEqual(sober["tab.activeBorderTop"], "#1e1e1e");
   assert.equal(sober["editor.selectionBackground"], undefined);
 });
 
@@ -429,7 +488,7 @@ test("default sober mode keeps generated secondary surfaces neutral", () => {
     startColor: "#112233",
     endColor: "#445566",
     intensity: 25,
-    includeEditorAccent: true,
+    includeEditorAccent: false,
     monochromatic: true,
     sober: true,
     surfaceOverrides: {}
@@ -500,6 +559,46 @@ test("applying colors only updates extension state and workbench color customiza
   assert.equal(configValues.has("camaleone.startColor"), false);
   assert.equal(Object.keys(context.globalState.dump()).length > 0, true);
   assert.ok(updates.every((entry) => entry.key === "workbench.colorCustomizations"));
+});
+
+test("applying colors replaces stale managed workspace settings", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento(),
+    workspaceState: createMemento()
+  };
+  configValues.set("workbench.colorCustomizations", {
+    "titleBar.activeBackground": "#111111",
+    "editor.selectionBackground": "#222222",
+    "editorRuler.foreground": "#333333",
+    "[Cursor Dark Midnight]": {
+      "titleBar.activeBackground": "#444444",
+      "editorIndentGuide.background1": "#555555"
+    }
+  });
+
+  await testApi.applyColors(context, {
+    ...testApi.DEFAULT_CHOICES,
+    startColor: "#112233",
+    endColor: "#445566",
+    applyTo: "workspace",
+    includeEditorAccent: false,
+    sober: true
+  });
+
+  const colors = configValues.get("workbench.colorCustomizations");
+  assert.equal(colors["titleBar.activeBackground"], "#112233");
+  assert.equal(colors["editor.selectionBackground"], undefined);
+  assert.equal(colors["editorRuler.foreground"], "#333333");
+  assert.deepEqual(colors["[Cursor Dark Midnight]"], {
+    "editorIndentGuide.background1": "#555555"
+  });
+  assert.deepEqual(updates.at(-1), {
+    key: "workbench.colorCustomizations",
+    value: colors,
+    target: vscodeMock.ConfigurationTarget.Workspace
+  });
 });
 
 test("favourite commands save and apply stored color profiles", async () => {
@@ -842,6 +941,8 @@ test("picker html contains the simplified workflow controls", () => {
     "Complementary",
     "Revert",
     "Tint editor selection/cursor",
+    "Uses the start color as the anchor",
+    "Adds the active palette color to editor selection",
     "Reset IDE defaults"
   ]) {
     assert.ok(html.includes(text), `picker should include ${text}`);
@@ -864,6 +965,11 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("options-grid"));
   assert.ok(html.includes("option-item"));
   assert.ok(html.includes("option-checkbox-group"));
+  assert.ok(html.includes("option-help-wrap"));
+  assert.ok(html.includes("help-trigger"));
+  assert.ok(html.includes("option-help-panel"));
+  assert.ok(html.includes('data-help-target="monochromaticHelp"'));
+  assert.ok(html.includes('data-help-target="editorAccentHelp"'));
   assert.ok(html.includes("options-stack"));
   assert.ok(html.includes("options-section"));
   assert.ok(html.includes("options-section-title"));
@@ -904,19 +1010,24 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes('color.addEventListener("change"'));
   assert.ok(html.includes('text.addEventListener("change"'));
   assert.ok(html.includes('color.addEventListener("input", () =>'));
+  assert.ok(html.includes("updatePreviewAndApply(60)"));
+  assert.ok(html.includes("updatePreviewAndApply(80);"));
   assert.ok(html.includes("updatePreviewAndApply(120);"));
   assert.ok(html.includes("updatePreviewAndApply(180);"));
+  assert.ok(html.includes("registerHelpPopups"));
+  assert.ok(html.includes("toggleHelpPopup"));
+  assert.ok(html.includes("closeHelpPopups"));
   assert.ok(html.includes("const suggested = solidHex(getGeneratedSurfaceColors({}, true)[surfaceId])"));
   assert.ok(html.includes("resetButton.innerHTML"));
   assert.ok(html.includes("let applyTimer;"));
-  assert.ok(html.includes('elements.intensity.addEventListener("input", () => updatePreviewAndApply(120));'));
+  assert.ok(html.includes('elements.intensity.addEventListener("input", () => updatePreviewAndApply(60));'));
   assert.ok(html.includes('elements.intensity.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.applyTo.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.includeEditorAccent.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.sober.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.panelHarmony.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('updatePreviewAndApply(0);'));
-  assert.ok(html.includes('vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id });'));
+  assert.ok(html.includes('vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id, applyTo: target });'));
   assert.equal(html.includes("Click Apply colors to write it."), false);
   assert.ok(html.includes("function scheduleApply(delay)"));
   assert.equal(html.includes("syncEndFromRelationship"), false);
@@ -958,6 +1069,19 @@ test("manifest and generated icon assets use the organized paths", () => {
   assert.ok(manifest.description.includes("sober mode"));
   assert.ok(manifest.description.includes("favourites"));
   assert.equal(manifest.contributes.configuration.properties["camaleone.sober"].default, true);
+  assert.deepEqual(manifest.contributes.viewsContainers.activitybar[0], {
+    id: "camaleone",
+    title: "Camaleone",
+    icon: "assets/icons/svg/camaleone-activity.svg"
+  });
+  assert.equal(manifest.contributes.views.camaleone[0].id, "camaleone.controls");
+  assert.equal(manifest.contributes.views.camaleone[0].name, "Controls");
+  assert.equal(manifest.contributes.views.camaleone[0].icon, "assets/icons/svg/camaleone-activity.svg");
+  assert.ok(manifest.contributes.viewsWelcome[0].contents.includes("command:camaleone.openPicker"));
+
+  const openPickerCommand = manifest.contributes.commands.find((entry) => entry.command === "camaleone.openPicker");
+  assert.equal(openPickerCommand.icon.light, "assets/icons/svg/camaleone-activity-dark.svg");
+  assert.equal(openPickerCommand.icon.dark, "assets/icons/svg/camaleone-activity-light.svg");
 
   for (const relativePath of [
     "assets/icons/store/camaleone.png",
@@ -973,6 +1097,9 @@ test("manifest and generated icon assets use the organized paths", () => {
     "assets/icons/ico/camaleone-sil-1.ico",
     "assets/icons/ico/camaleone-sil-2.ico",
     "assets/icons/ico/camaleone-sil-3.ico",
+    "assets/icons/svg/camaleone-activity.svg",
+    "assets/icons/svg/camaleone-activity-dark.svg",
+    "assets/icons/svg/camaleone-activity-light.svg",
     "assets/screenshots/marketplace/camaleone-0.png",
     "assets/screenshots/marketplace/camaleone-1.png",
     "assets/screenshots/marketplace/camaleone-2.png",
@@ -987,6 +1114,10 @@ test("manifest and generated icon assets use the organized paths", () => {
     assert.equal(fs.existsSync(path.join(repoRoot, relativePath)), true, `${relativePath} should exist`);
   }
 
+  assert.ok(textFile("assets/icons/svg/camaleone-activity.svg").includes('stroke="currentColor"'));
+  assert.ok(textFile("assets/icons/svg/camaleone-activity-dark.svg").includes('stroke="#111111"'));
+  assert.ok(textFile("assets/icons/svg/camaleone-activity-light.svg").includes('stroke="#ffffff"'));
+
   const readme = textFile("README.md");
   const websiteScreenshotBase = "https://trentini.fyi/camaleone/assets/screenshots/marketplace";
   const websiteScreenshots = [
@@ -997,8 +1128,8 @@ test("manifest and generated icon assets use the organized paths", () => {
     "camaleone-v04-4.png",
     "camaleone-v04-5.png"
   ];
-  assert.ok(readme.includes("## Marketplace Screenshots"));
-  assert.ok(readme.indexOf("## Marketplace Screenshots") < readme.indexOf("## How To Use"));
+  assert.ok(readme.includes("## Screenshots"));
+  assert.ok(readme.indexOf("## Screenshots") < readme.indexOf("## How To Use"));
   assert.ok(readme.includes("<td colspan=\"4\">"));
   assert.ok(readme.includes("https://trentini.fyi/camaleone/"));
   for (const filename of websiteScreenshots) {
@@ -1040,14 +1171,16 @@ test("command titles rely on category for the Camaleone prefix", () => {
   }
 });
 
-test("README includes marketplace project description and feature copy", () => {
+test("README includes official overview, info links, and feature copy", () => {
   const readme = textFile("README.md");
-  assert.ok(readme.includes("## Marketplace Description"));
+  assert.ok(readme.includes("Camaleone gives each IDE workspace more personality with gradient-inspired treatment, high customization, and presets."));
+  assert.ok(readme.includes("Users of this extension have a big deal of freedom!"));
+  assert.ok(readme.includes("## More info"));
+  assert.ok(readme.includes("## Overview"));
   assert.ok(readme.includes("distinct identity"));
   assert.ok(readme.includes("default `Sober` mode"));
   assert.ok(readme.includes("customize individual surfaces"));
   assert.ok(readme.includes("Save favourite palettes"));
-  assert.ok(readme.includes("## Website And Install"));
   assert.ok(readme.includes("README media is intentionally loaded from the live website"));
   assert.ok(readme.includes("## Feature Highlights"));
   assert.ok(readme.includes("## What Users Say"));
@@ -1060,7 +1193,7 @@ test("README includes marketplace project description and feature copy", () => {
   assert.ok(readme.includes("opens the customization interface for choosing colors"));
   assert.ok(readme.includes("[Get in touch](https://trentini.fyi/camaleone/)"));
   assert.ok(readme.includes("[Buy me a coffee](https://trentini.fyi/camaleone/#support)"));
-  assert.ok(readme.indexOf("## Marketplace Description") < readme.indexOf("## How To Use"));
+  assert.ok(readme.indexOf("## Overview") < readme.indexOf("## How To Use"));
   assert.equal(readme.includes("## Settings"), false);
   assert.equal(readme.includes("## Customization Notes"), false);
 });

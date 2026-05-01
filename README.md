@@ -1,10 +1,10 @@
 # Camaleone
 
-Camaleone is a VS Code and Cursor extension that gives each IDE workspace more personality with gradient-inspired treatment, high customization, and presets with the colours of Magnificent 7 companies and the top 10 universities in the world.
+Camaleone gives each IDE workspace more personality with gradient-inspired treatment, high customization, and presets.
 
-VS Code's supported workbench color API accepts individual color values. Camaleone samples a start-to-end gradient and applies those samples across the title bar, activity bar, side bar, panel, status bar, buttons, borders, and optional editor accents.
+VS Code's supported workbench color API accepts individual color values. Camaleone samples a start-to-end gradient and applies those samples across the title bar, activity bar, side bar, panel, status bar, buttons, borders, and optional editor accents. Users of this extension have a big deal of freedom!
 
-## Website And Install
+## More info
 
 - Website: [trentini.fyi/camaleone](https://trentini.fyi/camaleone/)
 - VS Code Marketplace: [trentinium.camaleone](https://marketplace.visualstudio.com/items?itemName=trentinium.camaleone)
@@ -13,7 +13,7 @@ VS Code's supported workbench color API accepts individual color values. Camaleo
 
 The website includes the animated feature walkthrough, current marketplace screenshots, user notes, and support links. README media is intentionally loaded from the live website so marketplace pages and GitHub always show the current visuals published on `github-pages`.
 
-## Marketplace Description
+## Overview
 
 Camaleone gives every VS Code and Cursor window a distinct identity **without forcing you to install a full theme**.
 
@@ -40,7 +40,7 @@ It is built for people who work across many projects and want a fast visual cue 
 >
 > "It's just beautiful"
 
-## Marketplace Screenshots
+## Screenshots
 
 Click any image to open the Camaleone website. These images are loaded from `https://trentini.fyi/camaleone/`.
 

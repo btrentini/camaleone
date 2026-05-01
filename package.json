@@ -31,7 +31,11 @@
       {
         "command": "camaleone.openPicker",
         "title": "Open Colour Picker",
-        "category": "Camaleone"
+        "category": "Camaleone",
+        "icon": {
+          "light": "assets/icons/svg/camaleone-activity-dark.svg",
+          "dark": "assets/icons/svg/camaleone-activity-light.svg"
+        }
       },
       {
         "command": "camaleone.quickApply",
@@ -67,6 +71,30 @@
         "command": "camaleone.applyFavorite",
         "title": "Apply Favourite Colors",
         "category": "Camaleone"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "camaleone",
+          "title": "Camaleone",
+          "icon": "assets/icons/svg/camaleone-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "camaleone": [
+        {
+          "id": "camaleone.controls",
+          "name": "Controls",
+          "icon": "assets/icons/svg/camaleone-activity.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "camaleone.controls",
+        "contents": "[Open Colour Picker](command:camaleone.openPicker)\n\n[Surprise Me](command:camaleone.surpriseMe)\n\n[Restore Previous](command:camaleone.clear)"
       }
     ],
     "configuration": {

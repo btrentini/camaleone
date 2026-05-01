@@ -7,6 +7,7 @@
 const vscode = require("vscode");
 
 const EXTENSION_PREFIX = "camaleone";
+const ACTIVITY_VIEW_ID = "camaleone.controls";
 
 const LAST_CHOICES_KEY = `${EXTENSION_PREFIX}.lastChoices`;
 const FAVORITES_KEY = `${EXTENSION_PREFIX}.favorites`;
@@ -220,6 +221,7 @@ function createIdeDefaultChoices(options = {}) {
  */
 function activate(context) {
   context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(ACTIVITY_VIEW_ID, createActivityBarProvider()),
     vscode.commands.registerCommand("camaleone.openPicker", () => openPicker(context)),
     vscode.commands.registerCommand("camaleone.quickApply", () => quickApply(context)),
     vscode.commands.registerCommand("camaleone.applyConfigured", () => applyConfigured(context)),
@@ -236,6 +238,20 @@ function activate(context) {
  * subscriptions registered during activation.
  */
 function deactivate() {}
+
+/**
+ * Provides an empty Activity Bar view so the welcome actions can drive Camaleone.
+ */
+function createActivityBarProvider() {
+  return {
+    getTreeItem(item) {
+      return item;
+    },
+    getChildren() {
+      return [];
+    }
+  };
+}
 
 /**
  * Opens the full webview picker and wires browser messages back to extension
@@ -323,7 +339,7 @@ async function openPicker(context) {
 
     if (message.type === "applyFavorite") {
       try {
-        const result = await applyFavoriteById(context, message.favoriteId);
+        const result = await applyFavoriteById(context, message.favoriteId, { applyTo: message.applyTo });
         postPickerStatus("ok", `Applied ${result.startColor} to ${result.endColor} in ${result.targetLabel} settings.`);
       } catch (error) {
         postPickerStatus("error", error instanceof Error ? error.message : String(error));
@@ -835,21 +851,12 @@ async function patchWorkbenchColors(context, generatedColors, target) {
     await state.update(backupKey, backup);
   }
 
-  const nextColors = { ...currentObject };
+  const nextColors = removeManagedWorkbenchColorKeys(currentObject);
 
-  // Replace managed keys with generated values and clean up stale generated keys.
-  for (const key of EXTENSION_COLOR_KEYS) {
-    if (Object.prototype.hasOwnProperty.call(generatedColors, key)) {
-      nextColors[key] = generatedColors[key];
-      continue;
-    }
-
-    if (isActive) {
-      if (Object.prototype.hasOwnProperty.call(backup, key)) {
-        nextColors[key] = backup[key];
-      } else {
-        delete nextColors[key];
-      }
+  // Replace the complete managed key set with the current generated palette.
+  for (const [key, value] of Object.entries(generatedColors)) {
+    if (EXTENSION_COLOR_KEYS.includes(key)) {
+      nextColors[key] = value;
     }
   }
 
@@ -1195,12 +1202,15 @@ async function deleteFavorite(context, favoriteId) {
 /**
  * Applies a favorite by id from either saved or built-in favorite lists.
  */
-async function applyFavoriteById(context, favoriteId) {
+async function applyFavoriteById(context, favoriteId, options = {}) {
   const favorite = getFavorites(context).find((entry) => entry.id === favoriteId);
   if (!favorite) {
     throw new Error("Saved favourite color set not found.");
   }
-  return applyColors(context, favorite);
+  return applyColors(context, {
+    ...favorite,
+    applyTo: options.applyTo || favorite.applyTo
+  });
 }
 
 /**
@@ -1424,6 +1434,9 @@ function createColorCustomizations(choices) {
   if (choices.sober) {
     return createSoberColorCustomizations(startColor, endColor, colorRelationship, {
       includeEditorAccent: choices.includeEditorAccent,
+      intensity,
+      monochromatic: choices.monochromatic,
+      harmonyMode,
       surfaceOverrides: overrides
     });
   }
@@ -1512,15 +1525,26 @@ function createColorCustomizations(choices) {
  */
 function createSoberColorCustomizations(startColor, endColor, colorRelationship, options = {}) {
   const neutral = "#1e1e1e";
+  const intensity = clampNumber(options.intensity, 0, 100) / 100;
   const overrides = sanitizeSurfaceOverrides(options.surfaceOverrides);
-  const surfaceColor = (id, fallback) => overrides[id] || fallback;
-  const title = surfaceColor("titleBar", paletteColor(startColor, endColor, 0, colorRelationship));
-  const activity = surfaceColor("activityBar", paletteColor(startColor, endColor, surfaceSample("activityBar", 0.12), colorRelationship));
-  const side = surfaceColor("sideBar", neutral);
-  const panel = surfaceColor("panel", neutral);
-  const status = surfaceColor("statusBar", paletteColor(startColor, endColor, 1, colorRelationship));
-  const buttons = surfaceColor("buttons", neutral);
-  const editorAccent = surfaceColor("editorAccent", neutral);
+  const generatedSurfaceColor = (position) => (
+    options.monochromatic
+      ? harmonyColor(startColor, position, options.harmonyMode || "analogous")
+      : paletteColor(startColor, endColor, position, colorRelationship)
+  );
+  const blendSurface = (id, fallback) => {
+    const config = SURFACE_CONFIGS.find((entry) => entry.id === id);
+    const strength = config ? config.strength : 1;
+    const source = overrides[id] || fallback;
+    return blendColor(neutral, source, Math.max(0, Math.min(1, intensity * strength)));
+  };
+  const title = blendSurface("titleBar", generatedSurfaceColor(0));
+  const activity = blendSurface("activityBar", generatedSurfaceColor(surfaceSample("activityBar", 0.12)));
+  const side = blendSurface("sideBar", neutral);
+  const panel = blendSurface("panel", neutral);
+  const status = blendSurface("statusBar", generatedSurfaceColor(1));
+  const buttons = blendSurface("buttons", neutral);
+  const editorAccent = blendSurface("editorAccent", generatedSurfaceColor(surfaceSample("editorAccent", 0.5)));
   const sideForeground = contrastColor(side);
   const panelForeground = contrastColor(panel);
   const buttonForeground = contrastColor(buttons);
@@ -1576,7 +1600,7 @@ function createSoberColorCustomizations(startColor, endColor, colorRelationship,
     "titleBar.inactiveForeground": withAlpha(contrastColor(mutedTitle), 0.74)
   };
 
-  if (options.includeEditorAccent && overrides.editorAccent) {
+  if (options.includeEditorAccent) {
     colors["editor.findMatchBackground"] = withAlpha(editorAccent, 0.52);
     colors["editor.lineHighlightBackground"] = withAlpha(editorAccent, 0.18);
     colors["editor.selectionBackground"] = withAlpha(editorAccent, 0.42);
@@ -2248,6 +2272,51 @@ function getPickerHtml(webview, state) {
       min-height: 31px;
     }
 
+    .option-help-wrap {
+      position: relative;
+      display: grid;
+      gap: 6px;
+    }
+
+    .option-toggle-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .help-trigger {
+      width: 20px;
+      min-width: 20px;
+      height: 20px;
+      min-height: 20px;
+      padding: 0;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .option-help-panel {
+      position: absolute;
+      z-index: 20;
+      top: calc(100% + 6px);
+      right: 0;
+      width: min(280px, calc(100vw - 48px));
+      padding: 10px;
+      border: 1px solid var(--vscode-focusBorder);
+      border-radius: 6px;
+      color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
+      background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .option-help-panel[hidden] {
+      display: none;
+    }
+
     .options-section {
       display: grid;
       gap: 8px;
@@ -2429,15 +2498,31 @@ function getPickerHtml(webview, state) {
                 </div>
 
                 <div class="option-item option-checkbox-group">
-                  <label class="checkbox-row option-toggle">
-                    <input id="monochromatic" type="checkbox">
-                    <span>Monochromatic</span>
-                  </label>
+                  <div class="option-help-wrap">
+                    <div class="option-toggle-row">
+                      <label class="checkbox-row option-toggle">
+                        <input id="monochromatic" type="checkbox">
+                        <span>Monochromatic</span>
+                      </label>
+                      <button class="help-trigger" type="button" aria-label="Explain monochromatic mode" aria-expanded="false" aria-controls="monochromaticHelp" data-help-target="monochromaticHelp">?</button>
+                    </div>
+                    <div id="monochromaticHelp" class="option-help-panel" role="dialog" aria-label="Monochromatic mode explanation" hidden>
+                      Uses the start color as the anchor and derives related active surface colors from it. It keeps the current palette state instead of generating a new random scheme.
+                    </div>
+                  </div>
 
-                  <label class="checkbox-row option-toggle">
-                    <input id="includeEditorAccent" type="checkbox">
-                    <span>Tint editor selection/cursor</span>
-                  </label>
+                  <div class="option-help-wrap">
+                    <div class="option-toggle-row">
+                      <label class="checkbox-row option-toggle">
+                        <input id="includeEditorAccent" type="checkbox">
+                        <span>Tint editor selection/cursor</span>
+                      </label>
+                      <button class="help-trigger" type="button" aria-label="Explain editor tinting" aria-expanded="false" aria-controls="editorAccentHelp" data-help-target="editorAccentHelp">?</button>
+                    </div>
+                    <div id="editorAccentHelp" class="option-help-panel" role="dialog" aria-label="Editor tint explanation" hidden>
+                      Adds the active palette color to editor selection, line highlight, cursor, find match, and active links. Leave it off when you only want the IDE chrome to change.
+                    </div>
+                  </div>
                 </div>
 
                 <div class="field option-item">
@@ -2560,6 +2645,7 @@ function getPickerHtml(webview, state) {
       createSurfacePreview();
       renderFavorites();
       setChoices(state);
+      registerHelpPopups();
 
       if (!state.hasWorkspace) {
         elements.applyTo.querySelector('option[value="workspace"]').disabled = true;
@@ -2573,7 +2659,7 @@ function getPickerHtml(webview, state) {
       elements.endText.addEventListener("input", () => {
         syncFromText(elements.endText, elements.endColor);
       });
-      elements.intensity.addEventListener("input", () => updatePreviewAndApply(120));
+      elements.intensity.addEventListener("input", () => updatePreviewAndApply(60));
       elements.intensity.addEventListener("change", () => updatePreviewAndApply(0));
       elements.applyTo.addEventListener("change", () => updatePreviewAndApply(0));
       elements.includeEditorAccent.addEventListener("change", () => updatePreviewAndApply(0));
@@ -2684,7 +2770,7 @@ function getPickerHtml(webview, state) {
           text.disabled = !checkbox.checked;
           checkbox.dataset.custom = checkbox.checked ? "true" : "false";
           resetButton.disabled = checkbox.dataset.custom !== "true";
-          updatePreview();
+          updatePreviewAndApply(0);
         });
         // Color edits immediately mark a surface as a user override.
         const markCustomSurface = () => {
@@ -2959,7 +3045,7 @@ function getPickerHtml(webview, state) {
      */
     function syncFromColor(colorInput, textInput) {
       textInput.value = colorInput.value;
-      updatePreview();
+      updatePreviewAndApply(80);
     }
 
     /**
@@ -2969,8 +3055,61 @@ function getPickerHtml(webview, state) {
       const normalized = normalizeHex(textInput.value);
       if (normalized) {
         colorInput.value = normalized;
+        updatePreviewAndApply(180);
+        return;
       }
       updatePreview();
+    }
+
+    /**
+     * Wires option help buttons to small floating explanations.
+     */
+    function registerHelpPopups() {
+      for (const trigger of document.querySelectorAll("[data-help-target]")) {
+        trigger.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleHelpPopup(trigger);
+        });
+      }
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".option-help-wrap")) {
+          closeHelpPopups();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeHelpPopups();
+        }
+      });
+    }
+
+    /**
+     * Opens the requested help popup and closes any other visible popup.
+     */
+    function toggleHelpPopup(trigger) {
+      const panel = document.getElementById(trigger.dataset.helpTarget);
+      if (!panel) {
+        return;
+      }
+
+      const shouldOpen = panel.hidden;
+      closeHelpPopups();
+      panel.hidden = !shouldOpen;
+      trigger.setAttribute("aria-expanded", String(shouldOpen));
+    }
+
+    /**
+     * Hides every option help popup.
+     */
+    function closeHelpPopups() {
+      for (const panel of document.querySelectorAll(".option-help-panel")) {
+        panel.hidden = true;
+      }
+      for (const trigger of document.querySelectorAll("[data-help-target]")) {
+        trigger.setAttribute("aria-expanded", "false");
+      }
     }
 
     /**
@@ -3059,27 +3198,34 @@ function getPickerHtml(webview, state) {
 
       // Sober mode intentionally keeps secondary surfaces neutral.
       for (const surface of surfaces) {
-        if (sober) {
-          if (surface.id === "titleBar") {
-            colors[surface.id] = paletteColor(start, end, 0, elements.panelHarmony.value);
-            continue;
-          }
-          if (surface.id === "activityBar") {
-            colors[surface.id] = paletteColor(start, end, surface.sample, elements.panelHarmony.value);
-            continue;
-          }
-          if (surface.id === "statusBar") {
-            colors[surface.id] = paletteColor(start, end, 1, elements.panelHarmony.value);
-            continue;
-          }
-          colors[surface.id] = "#1e1e1e";
-          continue;
-        }
-
         const hasCustomOverride = !ignoreCustom && overrides[surface.id];
 
-        if (hasCustomOverride) {
-          colors[surface.id] = overrides[surface.id];
+        if (sober) {
+          const soberFallback = (() => {
+            if (surface.id === "titleBar") {
+              return monochromatic
+                ? harmonyColor(start, 0, harmonyMode)
+                : paletteColor(start, end, 0, elements.panelHarmony.value);
+            }
+            if (surface.id === "activityBar") {
+              return monochromatic
+                ? harmonyColor(start, surface.sample, harmonyMode)
+                : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
+            }
+            if (surface.id === "statusBar") {
+              return monochromatic
+                ? harmonyColor(start, 1, harmonyMode)
+                : paletteColor(start, end, 1, elements.panelHarmony.value);
+            }
+            if (surface.id === "editorAccent" && elements.includeEditorAccent.checked) {
+              return monochromatic
+                ? harmonyColor(start, surface.sample, harmonyMode)
+                : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
+            }
+            return "#1e1e1e";
+          })();
+          const source = hasCustomOverride ? overrides[surface.id] : soberFallback;
+          colors[surface.id] = mix("#1e1e1e", source, Math.max(0, Math.min(1, intensity * surface.strength)));
           continue;
         }
 
@@ -3421,9 +3567,10 @@ function getPickerHtml(webview, state) {
       if (!favorite) {
         return;
       }
+      const target = elements.applyTo.value;
       selectedFavoriteName = favorite.name;
-      setChoices(favorite);
-      vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id });
+      setChoices({ ...favorite, applyTo: target });
+      vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id, applyTo: target });
     }
 
     /**
