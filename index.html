@@ -199,23 +199,45 @@
             </p>
           </div>
           <div class="support-panel" aria-label="Support options">
-            <div class="qr-card">
+            <div class="qr-card payment-card">
               <a class="qr-image-link" href="https://paypal.me/brunotrentini" target="_blank" rel="noopener noreferrer" aria-label="Open PayPal support page for Camaleone.">
                 <img src="assets/icons/png/qrcode.png" alt="PayPal QR code for supporting Camaleone.">
               </a>
-              <span>Scan with PayPal</span>
-              <a class="support-link" href="https://paypal.me/brunotrentini" target="_blank" rel="noopener noreferrer">paypal.me/brunotrentini</a>
-            </div>
-            <a class="wallet-card" href="https://www.coinbase.com/send" target="_blank" rel="noopener noreferrer" aria-label="Open Coinbase to send Bitcoin to Camaleone.">
-              <img class="wallet-qr" src="assets/icons/png/bitcoin-qrcode.png" alt="Bitcoin payment QR code for supporting Camaleone.">
-              <div class="wallet-details">
-                <span>Bitcoin address</span>
-                <code>bc1q0hgwxsdrlsnnmzevpe9vln7pshw4emqf2lahxu</code>
-                <span class="wallet-link">Open Coinbase</span>
+              <div class="payment-details">
+                <span>PayPal link</span>
+                <div class="copy-row">
+                  <code>paypal.me/brunotrentini</code>
+                  <button class="copy-button" type="button" data-copy-value="paypal.me/brunotrentini" aria-label="Copy PayPal link">
+                    <svg class="icon stroke-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                  </button>
+                </div>
+                <a class="support-link" href="https://paypal.me/brunotrentini" target="_blank" rel="noopener noreferrer">Open PayPal</a>
               </div>
-            </a>
-            <div class="testimonial-card" aria-label="User testimonials">
-              <p class="testimonial-label">User notes</p>
+            </div>
+            <div class="wallet-card payment-card" data-card-href="https://www.coinbase.com/send">
+              <img class="wallet-qr" src="assets/icons/png/bitcoin-qrcode.png" alt="Bitcoin payment QR code for supporting Camaleone.">
+              <div class="wallet-details payment-details">
+                <span>Bitcoin address</span>
+                <div class="copy-row">
+                  <code>bc1q0hgwxsdrlsnnmzevpe9vln7pshw4emqf2lahxu</code>
+                  <button class="copy-button" type="button" data-copy-value="bc1q0hgwxsdrlsnnmzevpe9vln7pshw4emqf2lahxu" aria-label="Copy Bitcoin address">
+                    <svg class="icon stroke-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                  </button>
+                </div>
+                <a class="wallet-link" href="https://www.coinbase.com/send" target="_blank" rel="noopener noreferrer">Open Coinbase</a>
+              </div>
+            </div>
+            <section class="testimonial-card" aria-labelledby="testimonial-title">
+              <div class="testimonial-heading">
+                <p class="testimonial-label">Testimonials</p>
+                <h3 id="testimonial-title">What users are saying.</h3>
+              </div>
               <figure>
                 <blockquote>Loving it! Installed and in use!!</blockquote>
                 <figcaption>Camaleone user</figcaption>
@@ -232,7 +254,7 @@
                 <blockquote>It's just beautiful</blockquote>
                 <figcaption>Camaleone user</figcaption>
               </figure>
-            </div>
+            </section>
           </div>
         </div>
       </section>
@@ -501,6 +523,69 @@
         });
 
         scheduleAuto();
+      })();
+
+      (() => {
+        const copyButtons = Array.from(document.querySelectorAll("[data-copy-value]"));
+        const cards = Array.from(document.querySelectorAll("[data-card-href]"));
+
+        const fallbackCopy = (value) => {
+          const textarea = document.createElement("textarea");
+          textarea.value = value;
+          textarea.setAttribute("readonly", "");
+          textarea.style.position = "fixed";
+          textarea.style.top = "-999px";
+          textarea.style.left = "-999px";
+          document.body.appendChild(textarea);
+          textarea.select();
+          const copied = document.execCommand("copy");
+          textarea.remove();
+          if (!copied) {
+            throw new Error("Copy failed");
+          }
+        };
+
+        const writeClipboard = async (value) => {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(value);
+            return;
+          }
+
+          fallbackCopy(value);
+        };
+
+        copyButtons.forEach((button) => {
+          const defaultLabel = button.getAttribute("aria-label") || "Copy";
+
+          button.addEventListener("click", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            try {
+              await writeClipboard(button.dataset.copyValue || "");
+              button.dataset.copied = "true";
+              button.setAttribute("aria-label", "Copied");
+            } catch (error) {
+              button.dataset.copied = "false";
+              button.setAttribute("aria-label", "Copy failed");
+            }
+
+            window.setTimeout(() => {
+              delete button.dataset.copied;
+              button.setAttribute("aria-label", defaultLabel);
+            }, 1600);
+          });
+        });
+
+        cards.forEach((card) => {
+          card.addEventListener("click", (event) => {
+            if (event.target.closest("a, button")) {
+              return;
+            }
+
+            window.open(card.dataset.cardHref, "_blank", "noopener,noreferrer");
+          });
+        });
       })();
 
       (() => {

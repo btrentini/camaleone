@@ -877,7 +877,7 @@ h3 {
 .support-panel {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 20px;
   align-items: stretch;
 }
 
@@ -891,24 +891,29 @@ h3 {
 
 .qr-card {
   display: grid;
-  gap: 12px;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
   align-content: start;
-  justify-items: center;
-  min-height: 244px;
-  padding: 22px;
-  text-align: center;
+  justify-items: stretch;
+  min-height: 326px;
+  padding: 24px;
+  text-align: left;
 }
 
 .qr-card img {
   display: block;
-  width: 132px;
-  height: 132px;
+  width: min(196px, 100%);
+  height: auto;
+  aspect-ratio: 1;
   border-radius: 6px;
   background: #ffffff;
 }
 
 .qr-image-link {
-  display: block;
+  display: grid;
+  justify-self: center;
+  width: min(196px, 100%);
+  place-items: center;
   border-radius: 6px;
 }
 
@@ -921,15 +926,17 @@ h3 {
 
 .wallet-card {
   display: grid;
+  grid-template-rows: auto 1fr;
   align-content: start;
-  justify-items: center;
-  gap: 12px;
+  justify-items: stretch;
+  gap: 16px;
   min-width: 0;
-  min-height: 244px;
-  padding: 22px;
+  min-height: 326px;
+  padding: 24px;
   color: inherit;
-  text-align: center;
+  text-align: left;
   text-decoration: none;
+  cursor: pointer;
   transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
 
@@ -945,26 +952,82 @@ h3 {
 }
 
 .wallet-qr {
-  width: 132px;
-  height: 132px;
+  justify-self: center;
+  width: min(196px, 100%);
+  height: auto;
+  aspect-ratio: 1;
   border-radius: 6px;
   background: #ffffff;
 }
 
+.payment-details,
 .wallet-details {
   display: grid;
   gap: 10px;
+  align-self: end;
   justify-items: center;
+  width: 100%;
   min-width: 0;
 }
 
-.wallet-card code {
+.copy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(5, 7, 13, 0.46);
+}
+
+.copy-row code {
   display: block;
+  min-width: 0;
   overflow-wrap: anywhere;
-  text-align: center;
+  text-align: left;
   color: var(--ink);
   font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-  font-size: 14px;
+  font-size: 12.5px;
+  line-height: 1.32;
+}
+
+.copy-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: rgba(244, 247, 251, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.045);
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.copy-button:hover,
+.copy-button:focus-visible {
+  color: #ffffff;
+  border-color: rgba(101, 232, 255, 0.62);
+  background: rgba(101, 232, 255, 0.12);
+}
+
+.copy-button:active {
+  transform: translateY(1px);
+}
+
+.copy-button[data-copied="true"] {
+  color: #05070d;
+  border-color: var(--cyan);
+  background: var(--cyan);
+}
+
+.copy-button[data-copied="false"] {
+  color: var(--amber);
+  border-color: rgba(255, 178, 56, 0.72);
 }
 
 .support-link,
@@ -984,27 +1047,36 @@ h3 {
   position: relative;
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
   min-width: 0;
-  padding: 18px;
+  min-height: 238px;
+  padding: 24px;
   overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(101, 232, 255, 0.055), rgba(255, 255, 255, 0.028) 48%, rgba(255, 178, 56, 0.05)),
+    rgba(255, 255, 255, 0.03);
 }
 
 .testimonial-card::before {
-  content: '"';
+  content: "";
   position: absolute;
-  top: -20px;
-  right: 14px;
-  color: rgba(101, 232, 255, 0.16);
-  font-family: Georgia, serif;
-  font-size: 96px;
-  line-height: 1;
+  inset: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: calc(var(--radius) - 2px);
+  pointer-events: none;
+}
+
+.testimonial-heading {
+  position: relative;
+  z-index: 1;
+  grid-column: 1 / 5;
+  align-self: center;
+  max-width: 260px;
 }
 
 .testimonial-label {
   position: relative;
-  grid-column: 1 / -1;
   margin: 0;
   color: var(--cyan);
   font-size: 12px;
@@ -1012,26 +1084,66 @@ h3 {
   text-transform: uppercase;
 }
 
+.testimonial-heading h3 {
+  margin: 8px 0 0;
+  color: #ffffff;
+  font-size: 24px;
+  line-height: 1.08;
+}
+
 .testimonial-card figure {
   position: relative;
+  z-index: 1;
   margin: 0;
-  padding: 0 0 0 13px;
-  border-left: 2px solid rgba(101, 232, 255, 0.42);
+  padding: 15px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  background: rgba(8, 10, 18, 0.72);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(12px);
+}
+
+.testimonial-card figure:nth-of-type(1) {
+  grid-column: 5 / 9;
+  transform: translateY(2px);
+}
+
+.testimonial-card figure:nth-of-type(2) {
+  grid-column: 9 / 13;
+  transform: translateY(26px);
+}
+
+.testimonial-card figure:nth-of-type(3) {
+  grid-column: 4 / 8;
+  transform: translateY(-6px);
+}
+
+.testimonial-card figure:nth-of-type(4) {
+  grid-column: 8 / 12;
+  transform: translateY(12px);
 }
 
 .testimonial-card blockquote {
   position: relative;
   margin: 0;
   color: #ffffff;
-  font-size: 14px;
-  font-style: italic;
-  font-weight: 740;
-  line-height: 1.36;
+  font-size: 15px;
+  font-weight: 780;
+  line-height: 1.32;
+}
+
+.testimonial-card blockquote::before {
+  content: '"';
+  margin-right: 4px;
+  color: var(--cyan);
+  font-family: Georgia, serif;
+  font-size: 20px;
+  line-height: 0;
 }
 
 .testimonial-card figcaption {
   position: relative;
-  margin-top: 3px;
+  margin-top: 9px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 760;
@@ -1147,6 +1259,17 @@ h3 {
 
   .testimonial-card {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 0;
+  }
+
+  .testimonial-heading {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .testimonial-card figure:nth-of-type(n) {
+    grid-column: auto;
+    transform: none;
   }
 }
 
@@ -1243,12 +1366,16 @@ h3 {
     text-align: center;
   }
 
-  .wallet-card code {
-    text-align: center;
+  .copy-row code {
+    text-align: left;
   }
 
   .testimonial-card {
     grid-template-columns: 1fr;
+  }
+
+  .testimonial-heading h3 {
+    font-size: 22px;
   }
 
   .footer-grid {
