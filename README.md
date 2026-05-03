@@ -54,7 +54,7 @@ If Camaleone helps your workflow, a review on the VS Code Marketplace or Open VS
 
 Click any image to open the Camaleone website. These images are loaded from `https://trentini.fyi/camaleone/`.
 
-[![Camaleone animated walkthrough showing the picker, preview, customization, presets, saved favourites, and the Activity Bar side pane](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-feature-flow.gif)](https://trentini.fyi/camaleone/)
+[![Camaleone animated walkthrough starting with the Activity Bar shortcut, then fading into the picker, preview, customization, presets, and saved favourites](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-feature-flow.gif)](https://trentini.fyi/camaleone/)
 
 [![Camaleone Activity Bar side pane screenshot showing the compact left panel beside an active workspace](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-6.png)](https://trentini.fyi/camaleone/)
 
