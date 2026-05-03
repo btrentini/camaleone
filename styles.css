@@ -488,6 +488,11 @@ h3 {
   line-height: 1.38;
 }
 
+.film-stack {
+  display: grid;
+  gap: 18px;
+}
+
 .film-card {
   display: block;
   overflow: hidden;
@@ -660,7 +665,7 @@ h3 {
 .gallery-thumbs {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(5, 62px);
+  grid-template-columns: repeat(7, 62px);
   justify-content: center;
   gap: 10px;
 }
@@ -1149,6 +1154,45 @@ h3 {
   font-weight: 760;
 }
 
+.community-section {
+  background: #06070d;
+  border-top: 1px solid var(--line);
+}
+
+.community-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(420px, 1fr);
+  gap: 44px;
+  align-items: start;
+}
+
+.community-points {
+  display: grid;
+  gap: 18px;
+}
+
+.community-points article {
+  padding: 18px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.community-points article:nth-child(1) {
+  border-top-color: rgba(101, 232, 255, 0.58);
+}
+
+.community-points article:nth-child(2) {
+  border-top-color: rgba(25, 215, 196, 0.58);
+}
+
+.community-points article:nth-child(3) {
+  border-top-color: rgba(255, 178, 56, 0.58);
+}
+
+.community-points p {
+  margin: 0;
+  color: var(--muted);
+}
+
 .site-footer {
   padding: 28px 0;
   color: #ffffff;
@@ -1204,6 +1248,7 @@ h3 {
   .split-grid,
   .descriptor-grid,
   .support-grid,
+  .community-grid,
   .final-grid {
     grid-template-columns: 1fr;
   }

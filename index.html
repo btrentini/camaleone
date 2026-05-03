@@ -26,6 +26,7 @@
         <a href="#demo">Demo</a>
         <a href="#features">Features</a>
         <a href="#support">Support</a>
+        <a href="#community">Community</a>
         <a href="#screenshots">Screenshots</a>
         <a href="#project">Project</a>
         <a class="github-link" href="https://github.com/btrentini/camaleone" aria-label="Camaleone on GitHub">
@@ -121,25 +122,25 @@
             <p class="eyebrow">Feature walkthrough</p>
             <h2 id="demo-title">Pick a palette. Watch the window become recognizable.</h2>
             <p class="section-copy">
-              Five short frames show the core flow: picking colors, previewing the workbench identity,
-              customizing surfaces, loading presets, and saving favourite palettes.
+              Short generated animations show both entry points: the full picker and the Activity Bar
+              side pane for fast per-surface color changes.
             </p>
             <ol class="feature-beats" aria-label="Walkthrough feature sequence">
               <li>
-                <span>Pick colors</span>
-                <p>Choose the two colors that define the window identity.</p>
+                <span>Open the side pane</span>
+                <p>Click the Camaleone icon in the left Activity Bar.</p>
               </li>
               <li>
-                <span>Preview identity</span>
-                <p>Review how the palette lands across editor surfaces.</p>
+                <span>Pick colors</span>
+                <p>Use the full picker or compact side-pane controls.</p>
               </li>
               <li>
                 <span>Customize surfaces</span>
-                <p>Tune title bar, activity bar, panels, borders, and accents.</p>
+                <p>Tune title bar, activity bar, side bar, panels, borders, and accents.</p>
               </li>
               <li>
-                <span>Load presets</span>
-                <p>Start from company and university palettes when speed matters.</p>
+                <span>Apply to workspace</span>
+                <p>Apply colors once; Camaleone saves the workspace profile automatically.</p>
               </li>
               <li>
                 <span>Save favourites</span>
@@ -147,8 +148,13 @@
               </li>
             </ol>
           </div>
-          <div class="film-card">
-            <img src="assets/screenshots/marketplace/camaleone-feature-flow.gif" alt="Animated Camaleone walkthrough showing feature frames for picking colors, previewing identity, customizing surfaces, loading presets, and saving favourites.">
+          <div class="film-stack">
+            <div class="film-card">
+              <img src="assets/screenshots/marketplace/camaleone-feature-flow.gif" alt="Animated Camaleone walkthrough showing feature frames for picking colors, previewing identity, customizing surfaces, loading presets, and saving favourites.">
+            </div>
+            <div class="film-card">
+              <img src="assets/screenshots/marketplace/camaleone-sidebar-pane.gif" alt="Animated Camaleone walkthrough showing the Activity Bar icon opening the side pane, compact color tiles, and Apply colors.">
+            </div>
           </div>
         </div>
       </section>
@@ -177,8 +183,8 @@
               <p>Ships brand-inspired Magnificent 7 and QS top university presets, plus user-saved palettes.</p>
             </article>
             <article>
-              <h3>Workspace or global target</h3>
-              <p>Apply colors to the current workspace or to user settings for every editor window.</p>
+              <h3>Activity Bar side pane</h3>
+              <p>Open Camaleone from the left side bar and pick per-surface colors without leaving the compact pane.</p>
             </article>
             <article>
               <h3>Clean restore path</h3>
@@ -255,6 +261,33 @@
         </div>
       </section>
 
+      <section class="section community-section" id="community" aria-labelledby="community-title">
+        <div class="container community-grid">
+          <div>
+            <p class="eyebrow">Community note</p>
+            <h2 id="community-title">Independent, local, and built for users.</h2>
+            <p class="section-copy">
+              Camaleone is an independent community project by Bruno Trentini. It is not affiliated with,
+              endorsed by, or representative of any organization I work for, study with, or otherwise represent.
+            </p>
+          </div>
+          <div class="community-points" aria-label="Community and privacy details">
+            <article>
+              <h3>No data capture</h3>
+              <p>Camaleone does not capture, collect, transmit, or sell user data. It only writes the local VS Code or Cursor settings needed to apply the colors you choose.</p>
+            </article>
+            <article>
+              <h3>For the community</h3>
+              <p>The extension exists for developers who want recognizable editor windows without switching full themes or handing over workspace information.</p>
+            </article>
+            <article>
+              <h3>Reviews help</h3>
+              <p>If Camaleone helps your workflow, a review on the VS Code Marketplace or Open VSX would be extremely helpful for an independent developer.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section class="section" id="screenshots" aria-labelledby="screenshots-title">
         <div class="container">
           <div class="section-heading">
@@ -263,8 +296,8 @@
           </div>
           <div class="gallery-showcase" data-gallery>
             <div class="gallery-stage">
-              <a class="gallery-frame" id="gallery-full-link" href="assets/screenshots/marketplace/camaleone-v04-2.png" aria-label="Open full-size screenshot">
-                <img id="gallery-image" src="assets/screenshots/marketplace/camaleone-v04-2.png" alt="Camaleone interface with Oxford preset selected and a blue to white palette preview." width="4032" height="2570" loading="lazy" decoding="async">
+              <a class="gallery-frame" id="gallery-full-link" href="assets/screenshots/marketplace/camaleone-sidebar-pane.gif" aria-label="Open full-size screenshot">
+                <img id="gallery-image" src="assets/screenshots/marketplace/camaleone-sidebar-pane.gif" alt="Animated Camaleone Activity Bar side pane walkthrough with compact per-surface color controls." width="960" height="560" loading="lazy" decoding="async">
               </a>
               <div class="gallery-controls" aria-label="Screenshot navigation">
                 <button class="gallery-arrow" type="button" data-gallery-prev aria-label="Previous screenshot">
@@ -280,16 +313,24 @@
               </div>
             </div>
             <aside class="gallery-caption" aria-live="polite">
-              <span class="gallery-count" id="gallery-count">1 / 5</span>
-              <h3 id="gallery-title">Oxford preset preview</h3>
+              <span class="gallery-count" id="gallery-count">1 / 7</span>
+              <h3 id="gallery-title">Activity Bar side pane</h3>
               <p id="gallery-copy">
-                A saved university palette applied across the workbench, with the generated surface map visible beside the controls.
+                Open Camaleone from the left side bar, pick surface colors in compact tiles, and apply the palette to workspace settings.
               </p>
-              <a id="gallery-open" class="gallery-open" href="assets/screenshots/marketplace/camaleone-v04-2.png">Open full-size screenshot</a>
-              <div class="gallery-progress" aria-hidden="true" style="--gallery-progress: 20%;"></div>
+              <a id="gallery-open" class="gallery-open" href="assets/screenshots/marketplace/camaleone-sidebar-pane.gif">Open full-size screenshot</a>
+              <div class="gallery-progress" aria-hidden="true" style="--gallery-progress: 14.3%;"></div>
             </aside>
             <div class="gallery-thumbs" aria-label="Choose a screenshot">
-              <button type="button" class="gallery-thumb" data-gallery-thumb aria-current="true" data-image="assets/screenshots/marketplace/camaleone-v04-2.png" data-title="Oxford preset preview" data-caption="A saved university palette applied across the workbench, with the generated surface map visible beside the controls." data-alt="Camaleone interface with Oxford preset selected and a blue to white palette preview.">
+              <button type="button" class="gallery-thumb" data-gallery-thumb aria-current="true" data-image="assets/screenshots/marketplace/camaleone-sidebar-pane.gif" data-title="Activity Bar side pane" data-caption="Open Camaleone from the left side bar, pick surface colors in compact tiles, and apply the palette to workspace settings." data-alt="Animated Camaleone Activity Bar side pane walkthrough with compact per-surface color controls.">
+                <img src="assets/screenshots/marketplace/camaleone-sidebar-pane.gif" alt="" width="960" height="560" loading="lazy" decoding="async">
+                <span>Side pane</span>
+              </button>
+              <button type="button" class="gallery-thumb" data-gallery-thumb data-image="assets/screenshots/marketplace/camaleone-sidebar-pane.png" data-title="Compact side-pane tiles" data-caption="A still view of the Activity Bar side pane with direct color tiles, per-tile revert controls, and Apply colors." data-alt="Camaleone Activity Bar side pane screenshot with compact two-column surface color tiles and Apply colors.">
+                <img src="assets/screenshots/marketplace/camaleone-sidebar-pane.png" alt="" width="960" height="560" loading="lazy" decoding="async">
+                <span>Side tiles</span>
+              </button>
+              <button type="button" class="gallery-thumb" data-gallery-thumb data-image="assets/screenshots/marketplace/camaleone-v04-2.png" data-title="Oxford preset preview" data-caption="A saved university palette applied across the workbench, with the generated surface map visible beside the controls." data-alt="Camaleone interface with Oxford preset selected and a blue to white palette preview.">
                 <img src="assets/screenshots/marketplace/camaleone-v04-2.png" alt="" width="4032" height="2570" loading="lazy" decoding="async">
                 <span>Oxford preset</span>
               </button>
@@ -320,16 +361,16 @@
             <p class="eyebrow">Workflow</p>
             <h2 id="workflow-title">Pick, tune, apply, save.</h2>
             <p>
-              Open the picker from the Command Palette, choose a start and end color, generate a palette
-              with Surprise me, then adjust individual surfaces when the automatic result needs a more
-              deliberate touch.
+              Open the compact side pane from the Activity Bar or launch the full picker from the
+              Command Palette. Choose a start and end color, generate a palette with Surprise me, then
+              adjust individual surfaces when the automatic result needs a more deliberate touch.
             </p>
           </div>
           <ol class="steps">
-            <li>Open <strong>Camaleone: Open Colour Picker</strong>.</li>
-            <li>Choose colors, a relationship mode, intensity, and target scope.</li>
+            <li>Click the Camaleone Activity Bar icon, or open <strong>Camaleone: Open Colour Picker</strong>.</li>
+            <li>Choose colors, relationship mode, intensity, and sober behavior.</li>
             <li>Review the generated workbench preview and customize surfaces.</li>
-            <li>Apply the palette, save it as a favourite, or restore prior colors.</li>
+            <li>Apply the workspace palette, save it as a favourite, or restore prior colors.</li>
           </ol>
         </div>
       </section>

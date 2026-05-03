@@ -1,10 +1,10 @@
 # Camaleone
 
-Camaleone is a VS Code and Cursor extension that gives each IDE workspace more personality with gradient-inspired treatment, high customization, and presets with the colours of Magnificent 7 companies and the top 10 universities in the world.
+Camaleone gives each IDE workspace a recognizable visual identity with gradient-inspired workbench colors, compact Activity Bar controls, high customization, and reusable presets.
 
-VS Code's supported workbench color API accepts individual color values. Camaleone samples a start-to-end gradient and applies those samples across the title bar, activity bar, side bar, panel, status bar, buttons, borders, and optional editor accents.
+VS Code's supported workbench color API accepts individual color values. Camaleone samples a start-to-end gradient and applies those samples across the title bar, activity bar, side bar, panel, status bar, buttons, borders, and optional editor accents. Users of this extension have a big deal of freedom!
 
-## Website And Install
+## More info
 
 - Website: [trentini.fyi/camaleone](https://trentini.fyi/camaleone/)
 - VS Code Marketplace: [trentinium.camaleone](https://marketplace.visualstudio.com/items?itemName=trentinium.camaleone)
@@ -13,19 +13,31 @@ VS Code's supported workbench color API accepts individual color values. Camaleo
 
 The website includes the animated feature walkthrough, current marketplace screenshots, user notes, and support links. README media is intentionally loaded from the live website so marketplace pages and GitHub always show the current visuals published on `github-pages`.
 
-## Marketplace Description
+## Overview
 
 Camaleone gives every VS Code and Cursor window a distinct identity **without forcing you to install a full theme**.
 
-Pick a start and end color, generate palettes with `Surprise me`, keep the result restrained with default `Sober` mode, use presets, or customize individual surfaces such as the title bar, activity bar, side bar, panel, status bar, buttons, and editor accents.
+Open Camaleone from the Activity Bar for a compact left-panel workflow, or use `Camaleone: Open Colour Picker` from the Command Palette for the full picker. Pick a start and end color, generate palettes with `Surprise me`, keep the result restrained with default `Sober` mode, use presets, or customize individual surfaces such as the title bar, activity bar, side bar, panel, status bar, remote host indicator, buttons, and editor accents.
 
-It is built for people who work across many projects and want a fast visual cue for each window. Save favourite palettes, apply them again later, restore the colors Camaleone replaced, or reset cleanly to IDE defaults whenever you need to.
+It is built for people who work across many projects and want a fast visual cue for each window. Workspace profiles are saved automatically after applying, so the selected palette is ready when that workspace opens again. Save favourite palettes, apply them again later, restore the colors Camaleone replaced, or reset cleanly to IDE defaults whenever you need to.
+
+## Community, Privacy, And Reviews
+
+Camaleone is an independent community project by Bruno Trentini. It is not affiliated with, endorsed by, or representative of any organization I work for, study with, or otherwise represent.
+
+Camaleone does not capture, collect, transmit, or sell user data. It only writes the local VS Code or Cursor settings needed to apply the colors you choose.
+
+If Camaleone helps your workflow, a review on the VS Code Marketplace or Open VSX would be extremely helpful. Reviews make a real difference for an independent developer and help other users decide whether to try the extension.
 
 ## Feature Highlights
 
 - Gradient-inspired workbench identity without installing or switching full themes.
+- Activity Bar side pane, visible by default, for quick left-panel color edits.
+- Compact two-column surface tiles for direct color picking and per-surface revert actions.
 - Sober mode for restrained color on high-signal surfaces.
-- Per-surface customization for title bar, activity bar, side bar, panel, status bar, buttons, borders, and editor accents.
+- Per-surface customization for title bar, activity bar, side bar, panel, status bar, remote host, buttons, borders, and editor accents.
+- `Surprise me` palettes biased toward distinctive color pairs instead of mostly similar colors.
+- Automatic workspace profile saving so the selected palette is ready when the workspace opens again.
 - Built-in presets for Magnificent 7 companies and QS 2026 top universities.
 - Favourite palettes for reusable workspace identities.
 - Clean restore and reset commands for returning to previous colors or IDE defaults.
@@ -38,11 +50,15 @@ It is built for people who work across many projects and want a fast visual cue 
 >
 > "It's just beautiful"
 
-## Marketplace Screenshots
+## Screenshots
 
 Click any image to open the Camaleone website. These images are loaded from `https://trentini.fyi/camaleone/`.
 
 [![Camaleone animated walkthrough showing the picker, preview, customization, presets, and saved favourites](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-feature-flow.gif)](https://trentini.fyi/camaleone/)
+
+[![Camaleone Activity Bar side pane walkthrough showing the sidebar icon, compact surface tiles, colour picking, and Apply colors](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-sidebar-pane.gif)](https://trentini.fyi/camaleone/)
+
+[![Camaleone Activity Bar side pane screenshot showing compact two-column surface tiles and Apply colors](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-sidebar-pane.png)](https://trentini.fyi/camaleone/)
 
 <table>
   <tr>
@@ -78,16 +94,24 @@ Click any image to open the Camaleone website. These images are loaded from `htt
 
 ## How To Use
 
+Fast Activity Bar side-panel flow:
+
 1. Install Camaleone in VS Code or Cursor.
-2. Open the Command Palette with `Cmd+Shift+P` on macOS or `Ctrl+Shift+P` on Windows and Linux.
-3. Run `Camaleone: Open Colour Picker`. This is the main command, and it opens the Camaleone customization interface.
-4. Choose a `Start color` and `End color`, or click `Surprise me` to generate a palette.
-5. Leave `Sober` enabled for a restrained window identity, or turn it off for a fuller palette across the workbench.
-6. Choose whether to apply the colors to `Workspace settings` or `Global settings`.
-7. Use `Customize` to tune individual surfaces such as the title bar, activity bar, side bar, panel, status bar, buttons, and editor accents. Surface changes apply automatically; `Revert` returns a surface to the generated palette color.
-8. Click `Apply colors` to write the current palette.
-9. Click `Save as favourite...` to store a palette, then choose it from the favourites list to apply it later. Preloaded presets can also be loaded and customized.
-10. Use `Restore previous` to return to the colors Camaleone replaced, or `Reset IDE defaults` to remove Camaleone-managed colors.
+2. Click the Camaleone icon in the Activity Bar, the left side bar, to open the compact side pane.
+3. Use the compact two-column tiles to pick surface colors directly for the title bar, activity bar, side bar, panel, status bar, remote host, buttons, and editor accents.
+4. Click the small revert icon on a tile to return that surface to the generated palette color.
+5. Click `Apply colors` to write the current palette to workspace settings. Camaleone saves the workspace profile automatically, so the palette is ready the next time you open that workspace.
+
+Full picker flow:
+
+1. Open the Command Palette with `Cmd+Shift+P` on macOS or `Ctrl+Shift+P` on Windows and Linux.
+2. Run `Camaleone: Open Colour Picker` for the full picker pane.
+3. Choose a `Start color` and `End color`, or click `Surprise me` to generate a palette that favors distinctive color pairs.
+4. Leave `Sober` enabled for a restrained window identity, or turn it off for a fuller palette across the workbench.
+5. Use `Customize` to tune the same surfaces available in the Activity Bar pane. Surface changes apply automatically; `Revert` returns a surface to the generated palette color.
+6. Keep editing after applying if needed; picker changes continue to save back to the same workspace profile.
+7. Click `Save as favourite...` to store a palette, then choose it from the favourites list to apply it later. Preloaded presets can also be loaded and customized.
+8. Use `Restore previous` to return to the colors Camaleone replaced, or `Reset IDE defaults` to remove Camaleone-managed colors.
 
 ## Preloaded Favourites
 
