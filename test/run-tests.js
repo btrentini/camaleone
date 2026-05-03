@@ -1342,7 +1342,7 @@ test("activity bar picker keeps surface customization in the first preview cards
 
 test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
-  assert.equal(manifest.version, "0.1.9");
+  assert.equal(manifest.version, "0.1.10");
   assert.equal(manifest.publisher, "trentinium");
   assert.equal(manifest.icon, "assets/icons/ico/camaleone_transparent.ico");
   assert.equal(manifest.repository.url, "https://github.com/btrentini/camaleone.git");

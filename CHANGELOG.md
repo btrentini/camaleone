@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.10
+
+- Repackaged the 0.1.9 Activity Bar side-pane release under a fresh marketplace version.
+- No intentional runtime behavior changes from 0.1.9.
+
 ## 0.1.9
 
 - Added a default Activity Bar side pane with the full picker workflow and compact two-column surface color controls.
