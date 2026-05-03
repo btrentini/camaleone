@@ -62,7 +62,7 @@ Click any image to open the Camaleone website. These images are loaded from `htt
   <tr>
     <td colspan="4">
       <a href="https://trentini.fyi/camaleone/">
-        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-2.png" alt="Camaleone marketplace hero showing the Oxford preset dropdown, blue workbench accents, and generated palette preview" width="100%">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-6.png" alt="Camaleone Activity Bar side pane open beside an active editor workspace" width="100%">
       </a>
     </td>
   </tr>
