@@ -23,11 +23,11 @@ It is built for people who work across many projects and want a fast visual cue 
 
 ## Community, Privacy, And Reviews
 
-Camaleone is an independent community project by Bruno Trentini. It is not affiliated with, endorsed by, or representative of any organization I work for, study with, or otherwise represent.
+Camaleone is an independent community project. It is not affiliated with, endorsed by, or representative of any organization developers work for, study with, or otherwise represent.
 
 Camaleone does not capture, collect, transmit, or sell user data. It only writes the local VS Code or Cursor settings needed to apply the colors you choose.
 
-If Camaleone helps your workflow, a review on the VS Code Marketplace or Open VSX would be extremely helpful. Reviews make a real difference for an independent developer and help other users decide whether to try the extension.
+If Camaleone helps your workflow, a review on the VS Code Marketplace or Open VSX would be extremely helpful. Reviews make a real difference and help other users decide whether to try the extension.
 
 ## Feature Highlights
 
@@ -54,11 +54,9 @@ If Camaleone helps your workflow, a review on the VS Code Marketplace or Open VS
 
 Click any image to open the Camaleone website. These images are loaded from `https://trentini.fyi/camaleone/`.
 
-[![Camaleone animated walkthrough showing the picker, preview, customization, presets, and saved favourites](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-feature-flow.gif)](https://trentini.fyi/camaleone/)
+[![Camaleone animated walkthrough showing the picker, preview, customization, presets, saved favourites, and the Activity Bar side pane](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-feature-flow.gif)](https://trentini.fyi/camaleone/)
 
-[![Camaleone Activity Bar side pane walkthrough showing the sidebar icon, compact surface tiles, colour picking, and Apply colors](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-sidebar-pane.gif)](https://trentini.fyi/camaleone/)
-
-[![Camaleone Activity Bar side pane screenshot showing compact two-column surface tiles and Apply colors](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-sidebar-pane.png)](https://trentini.fyi/camaleone/)
+[![Camaleone Activity Bar side pane screenshot showing the compact left panel beside an active workspace](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-6.png)](https://trentini.fyi/camaleone/)
 
 <table>
   <tr>
@@ -97,7 +95,7 @@ Click any image to open the Camaleone website. These images are loaded from `htt
 Fast Activity Bar side-panel flow:
 
 1. Install Camaleone in VS Code or Cursor.
-2. Click the Camaleone icon in the Activity Bar, the left side bar, to open the compact side pane.
+2. Click the Camaleone icon in the Activity Bar (usually located on the left side bar) to open the compact side pane.
 3. Use the compact two-column tiles to pick surface colors directly for the title bar, activity bar, side bar, panel, status bar, remote host, buttons, and editor accents.
 4. Click the small revert icon on a tile to return that surface to the generated palette color.
 5. Click `Apply colors` to write the current palette to workspace settings. Camaleone saves the workspace profile automatically, so the palette is ready the next time you open that workspace.
