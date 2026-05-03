@@ -1,6 +1,6 @@
 # Camaleone
 
-Camaleone gives each IDE workspace a recognizable visual identity with gradient-inspired workbench colors, compact Activity Bar controls, high customization, and reusable presets.
+Camaleone is a VS Code Marketplace and Open VSX extension that gives VS Code, Cursor, and compatible VS Code-based IDE workspaces a recognizable visual identity with gradient-inspired workbench colors, compact Activity Bar controls, high customization, and reusable presets.
 
 VS Code's supported workbench color API accepts individual color values. Camaleone samples a start-to-end gradient and applies those samples across the title bar, activity bar, side bar, panel, status bar, buttons, borders, and optional editor accents. Users of this extension have a big deal of freedom!
 
@@ -13,9 +13,11 @@ VS Code's supported workbench color API accepts individual color values. Camaleo
 
 The website includes the animated feature walkthrough, current marketplace screenshots, user notes, and support links. README media is intentionally loaded from the live website so marketplace pages and GitHub always show the current visuals published on `github-pages`.
 
+It is distributed through the VS Code Marketplace and Open VSX, and the VSIX package works in VS Code, Cursor, and compatible VS Code-based IDEs.
+
 ## Overview
 
-Camaleone gives every VS Code and Cursor window a distinct identity **without forcing you to install a full theme**.
+Camaleone gives every VS Code, Cursor, and compatible VS Code-based IDE window a distinct identity **without forcing you to install a full theme**.
 
 Open Camaleone from the Activity Bar for a compact left-panel workflow, or use `Camaleone: Open Colour Picker` from the Command Palette for the full picker. Pick a start and end color, generate palettes with `Surprise me`, keep the result restrained with default `Sober` mode, use presets, or customize individual surfaces such as the title bar, activity bar, side bar, panel, status bar, remote host indicator, buttons, and editor accents.
 
@@ -25,7 +27,7 @@ It is built for people who work across many projects and want a fast visual cue 
 
 Camaleone is an independent community project. It is not affiliated with, endorsed by, or representative of any organization developers work for, study with, or otherwise represent.
 
-Camaleone does not capture, collect, transmit, or sell user data. It only writes the local VS Code or Cursor settings needed to apply the colors you choose.
+Camaleone does not capture, collect, transmit, or sell user data. It only writes the local VS Code-compatible settings needed to apply the colors you choose.
 
 If Camaleone helps your workflow, a review on the VS Code Marketplace or Open VSX would be extremely helpful. Reviews make a real difference and help other users decide whether to try the extension.
 
@@ -94,7 +96,7 @@ Click any image to open the Camaleone website. These images are loaded from `htt
 
 Fast Activity Bar side-panel flow:
 
-1. Install Camaleone in VS Code or Cursor.
+1. Install Camaleone from the VS Code Marketplace or Open VSX in VS Code, Cursor, or a compatible VS Code-based IDE.
 2. Click the Camaleone icon in the Activity Bar (usually located on the left side bar) to open the compact side pane.
 3. Use the compact two-column tiles to pick surface colors directly for the title bar, activity bar, side bar, panel, status bar, remote host, buttons, and editor accents.
 4. Click the small revert icon on a tile to return that surface to the generated palette color.
