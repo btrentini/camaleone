@@ -1,8 +1,8 @@
 {
   "name": "camaleone",
   "displayName": "Camaleone",
-  "description": "Color for IDE windows. Better than Peacock: gradients, sober mode, presets, favourites, per-surface controls, and restore.",
-  "version": "0.1.8",
+  "description": "VS Code Marketplace/Open VSX extension for VS Code, Cursor, and compatible IDE window colours.",
+  "version": "0.1.9",
   "publisher": "trentinium",
   "license": "MIT",
   "icon": "assets/icons/ico/camaleone_transparent.ico",
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/btrentini/camaleone/issues"
   },
-  "homepage": "https://github.com/btrentini/camaleone#readme",
+  "homepage": "https://www.trentini.fyi/camaleone/",
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"
@@ -21,9 +21,38 @@
   "engines": {
     "vscode": "^1.87.0"
   },
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:camaleone.controls"
+  ],
   "categories": [
     "Themes",
+    "Visualization",
     "Other"
+  ],
+  "keywords": [
+    "camaleone",
+    "vscode",
+    "cursor",
+    "ide",
+    "workbench",
+    "themes",
+    "colors",
+    "colours",
+    "gradient",
+    "gradients",
+    "presets",
+    "favourites",
+    "favorites",
+    "sober-mode",
+    "visual-controls",
+    "surface-controls",
+    "workspace-identity",
+    "window-colors",
+    "activity-bar",
+    "status-bar",
+    "title-bar",
+    "remote-ssh"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -33,8 +62,8 @@
         "title": "Open Colour Picker",
         "category": "Camaleone",
         "icon": {
-          "light": "assets/icons/ico/camaleone-bar-0.ico",
-          "dark": "assets/icons/ico/camaleone-bar-1.ico"
+          "light": "assets/icons/ico/camaleone-activity-compact-light.ico",
+          "dark": "assets/icons/ico/camaleone-activity-compact-dark.ico"
         }
       },
       {
@@ -78,25 +107,21 @@
         {
           "id": "camaleone",
           "title": "Camaleone",
-          "icon": "assets/icons/ico/camaleone-bar-0.ico"
+          "icon": "assets/icons/png/camaleone-activity.png"
         }
       ]
     },
     "views": {
       "camaleone": [
         {
+          "type": "webview",
           "id": "camaleone.controls",
           "name": "Setup",
-          "icon": "assets/icons/ico/camaleone-bar-1.ico"
+          "icon": "assets/icons/ico/camaleone-activity-compact.ico",
+          "visibility": "visible"
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "camaleone.controls",
-        "contents": "[Open Camaleone Setup](command:camaleone.openPicker)\n\n[Surprise Me](command:camaleone.surpriseMe)\n\n[Restore Previous](command:camaleone.clear)"
-      }
-    ],
     "configuration": {
       "title": "Camaleone",
       "properties": {
@@ -118,19 +143,6 @@
           "minimum": 0,
           "maximum": 100,
           "description": "How strongly the gradient colors are blended into the workbench."
-        },
-        "camaleone.applyTo": {
-          "type": "string",
-          "default": "workspace",
-          "enum": [
-            "workspace",
-            "global"
-          ],
-          "enumDescriptions": [
-            "Store colors in this workspace's settings.",
-            "Store colors in user settings for every window."
-          ],
-          "description": "Where Camaleone writes the generated color customizations."
         },
         "camaleone.includeEditorAccent": {
           "type": "boolean",
@@ -171,11 +183,6 @@
           "type": "object",
           "default": {},
           "description": "Optional per-surface color overrides keyed by surface id."
-        },
-        "camaleone.persistChoices": {
-          "type": "boolean",
-          "default": false,
-          "description": "Persist the last chosen gradient values into settings. Disabled by default so applying colors only writes workbench color customizations."
         }
       }
     }

@@ -6,3 +6,5 @@ test/**
 DEVELOPMENT.md
 scripts/**
 *.vsix
+assets/icons/png/siide-ico.png
+assets/icons/png/activity-bar-ico.png

@@ -12,6 +12,22 @@ const ACTIVITY_VIEW_ID = "camaleone.controls";
 const LAST_CHOICES_KEY = `${EXTENSION_PREFIX}.lastChoices`;
 const FAVORITES_KEY = `${EXTENSION_PREFIX}.favorites`;
 const SIDE_BAR_BACKGROUND_ALPHA = 0.58;
+const SURPRISE_DISTINCT_PROBABILITY = 0.8;
+const SURPRISE_DISTINCT_HUE_MIN = 135;
+const SURPRISE_DISTINCT_HUE_MAX = 225;
+const SURPRISE_SIMILAR_HUE_MIN = 18;
+const SURPRISE_SIMILAR_HUE_MAX = 42;
+const WORKSPACE_PROFILE_SETTING_KEYS = [
+  "startColor",
+  "endColor",
+  "intensity",
+  "includeEditorAccent",
+  "monochromatic",
+  "sober",
+  "colorRelationship",
+  "panelHarmony",
+  "surfaceOverrides"
+];
 
 /**
  * Workbench color customization keys managed by Camaleone.
@@ -211,13 +227,13 @@ function defaultFavorite(id, name, startColor, endColor, surfaceOverrides = {}) 
 /**
  * Builds a neutral picker state that lets the active editor theme take over.
  */
-function createIdeDefaultChoices(options = {}) {
+function createIdeDefaultChoices() {
   const baseColor = baseColorForTheme();
   return {
     ...DEFAULT_CHOICES,
     startColor: baseColor,
     endColor: baseColor,
-    applyTo: options.applyTo === "global" ? "global" : DEFAULT_CHOICES.applyTo,
+    applyTo: DEFAULT_CHOICES.applyTo,
     includeEditorAccent: false,
     monochromatic: false,
     sober: DEFAULT_CHOICES.sober,
@@ -232,7 +248,11 @@ function createIdeDefaultChoices(options = {}) {
  */
 function activate(context) {
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider(ACTIVITY_VIEW_ID, createActivityBarProvider()),
+    vscode.window.registerWebviewViewProvider(
+      ACTIVITY_VIEW_ID,
+      createActivityBarWebviewProvider(context),
+      { webviewOptions: { retainContextWhenHidden: true } }
+    ),
     vscode.commands.registerCommand("camaleone.openPicker", () => openPicker(context)),
     vscode.commands.registerCommand("camaleone.quickApply", () => quickApply(context)),
     vscode.commands.registerCommand("camaleone.applyConfigured", () => applyConfigured(context)),
@@ -242,6 +262,8 @@ function activate(context) {
     vscode.commands.registerCommand("camaleone.saveFavorite", () => saveCurrentFavoriteCommand(context)),
     vscode.commands.registerCommand("camaleone.applyFavorite", () => applyFavoriteCommand(context))
   );
+
+  void applySavedWorkspaceProfileOnActivation(context);
 }
 
 /**
@@ -251,15 +273,48 @@ function activate(context) {
 function deactivate() {}
 
 /**
- * Provides an empty Activity Bar setup view so welcome actions can drive Camaleone.
+ * Reapplies an active saved workspace profile on activation. The profile is
+ * only replayed when Camaleone previously marked the workspace as active.
  */
-function createActivityBarProvider() {
+async function applySavedWorkspaceProfileOnActivation(context) {
+  if (!vscode.workspace.workspaceFolders || !vscode.workspace.workspaceFolders.length) {
+    return false;
+  }
+
+  const target = resolveTarget();
+  const state = getMemento(context, target);
+  if (!state.get(stateKey(target, "active"), false) || !hasSavedWorkspaceProfile(context)) {
+    return false;
+  }
+
+  await applyColors(context, getCurrentChoices(context));
+  return true;
+}
+
+/**
+ * Checks whether this workspace has a saved Camaleone profile to replay.
+ */
+function hasSavedWorkspaceProfile(context) {
+  const remembered = context.workspaceState.get(LAST_CHOICES_KEY, {});
+  if (isPlainObject(remembered) && (remembered.startColor || remembered.endColor)) {
+    return true;
+  }
+
+  const config = vscode.workspace.getConfiguration();
+  return ["startColor", "endColor"].some((key) => hasConfiguredValue(config.inspect(`${EXTENSION_PREFIX}.${key}`)));
+}
+
+/**
+ * Provides the same picker inside the Activity Bar container.
+ */
+function createActivityBarWebviewProvider(context) {
   return {
-    getTreeItem(item) {
-      return item;
-    },
-    getChildren() {
-      return [];
+    resolveWebviewView(webviewView) {
+      renderPickerWebview(context, webviewView.webview, {
+        ...createPickerInitialState(context),
+        layout: "activityBar"
+      });
+      registerPickerMessageHandler(context, webviewView.webview);
     }
   };
 }
@@ -274,8 +329,27 @@ async function openPicker(context) {
     return;
   }
 
+  pickerPanel = vscode.window.createWebviewPanel(
+    "camaleonePicker",
+    "Camaleone",
+    vscode.ViewColumn.One,
+    createPickerPanelOptions(context)
+  );
+
+  renderPickerWebview(context, pickerPanel.webview);
+  pickerPanel.onDidDispose(() => {
+    pickerPanel = undefined;
+  }, null, context.subscriptions);
+
+  registerPickerMessageHandler(context, pickerPanel.webview);
+}
+
+/**
+ * Builds the current picker state shared by panel and Activity Bar webviews.
+ */
+function createPickerInitialState(context) {
   const choices = getCurrentChoices(context);
-  const initialState = {
+  return {
     ...choices,
     favorites: getFavorites(context),
     surfaces: SURFACE_CONFIGS,
@@ -283,90 +357,91 @@ async function openPicker(context) {
     baseColor: baseColorForTheme(),
     hasWorkspace: Boolean(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length)
   };
+}
 
-  pickerPanel = vscode.window.createWebviewPanel(
-    "camaleonePicker",
-    "Camaleone",
-    vscode.ViewColumn.One,
-    createPickerWebviewOptions(context)
-  );
-
-  pickerPanel.webview.html = getPickerHtml(pickerPanel.webview, {
-    ...initialState,
-    pickerIcons: createPickerIconUris(context, pickerPanel.webview)
+/**
+ * Renders the shared picker UI into the provided webview.
+ */
+function renderPickerWebview(context, webview, state = createPickerInitialState(context)) {
+  webview.options = createPickerWebviewOptions(context);
+  webview.html = getPickerHtml(webview, {
+    ...state,
+    pickerIcons: createPickerIconUris(context, webview)
   });
-  pickerPanel.onDidDispose(() => {
-    pickerPanel = undefined;
-  }, null, context.subscriptions);
+}
 
-  pickerPanel.webview.onDidReceiveMessage(async (message) => {
+/**
+ * Wires picker browser messages from either the panel or the Activity Bar view.
+ */
+function registerPickerMessageHandler(context, webview) {
+  webview.onDidReceiveMessage(async (message) => {
     if (!message || typeof message.type !== "string") {
       return;
     }
 
-    // Applying writes only generated workbench colors unless persistChoices is enabled.
+    // Applying writes generated workbench colors and the workspace profile.
     if (message.type === "apply") {
       try {
         const result = await applyColors(context, message);
-        postPickerStatus("ok", `Applied ${result.startColor} to ${result.endColor} in ${result.targetLabel} settings.`);
+        postWebviewStatus(webview, "ok", `Applied ${result.startColor} to ${result.endColor} in workspace settings.`);
       } catch (error) {
-        postPickerStatus("error", error instanceof Error ? error.message : String(error));
+        postWebviewStatus(webview, "error", error instanceof Error ? error.message : String(error));
       }
     }
 
     if (message.type === "clear") {
-      await clearGradient(context, message.applyTo);
-      postPickerStatus("ok", "Restored the previous Camaleone-tracked colors.");
+      await clearGradient(context);
+      postWebviewStatus(webview, "ok", "Restored the previous Camaleone-tracked colors.");
     }
 
     // Reset removes Camaleone-managed color keys and then refreshes local picker state.
     if (message.type === "resetDefault") {
       const targets = await resetIdeDefaults(context);
-      const resetChoices = createIdeDefaultChoices({ applyTo: message.applyTo });
-      await context.globalState.update(LAST_CHOICES_KEY, resetChoices);
-      postPickerStatus("ok", `Reset ${formatTargetLabels(targets)} colors to IDE defaults.`);
-      pickerPanel.webview.postMessage({ type: "resetLocal", choices: resetChoices });
+      const resetChoices = createIdeDefaultChoices();
+      await context.workspaceState.update(LAST_CHOICES_KEY, resetChoices);
+      postWebviewStatus(webview, "ok", `Reset ${formatTargetLabels(targets)} colors to IDE defaults.`);
+      webview.postMessage({ type: "resetLocal", choices: resetChoices });
     }
 
     // Favorite actions round-trip through extension state so built-ins and saved overrides stay consistent.
     if (message.type === "saveFavorite") {
       try {
         const favorites = await saveFavorite(context, message, { promptForName: false });
-        pickerPanel.webview.postMessage({ type: "favorites", favorites });
-        postPickerStatus("ok", "Saved favourite color set.");
+        webview.postMessage({ type: "favorites", favorites });
+        postWebviewStatus(webview, "ok", "Saved favourite color set.");
       } catch (error) {
         const text = error instanceof Error ? error.message : String(error);
         if (text !== "cancelled") {
-          postPickerStatus("error", text);
+          postWebviewStatus(webview, "error", text);
         }
       }
     }
 
     if (message.type === "deleteFavorite") {
       const favorites = await deleteFavorite(context, message.favoriteId);
-      pickerPanel.webview.postMessage({ type: "favorites", favorites });
-      postPickerStatus("ok", "Deleted favourite color set.");
+      webview.postMessage({ type: "favorites", favorites });
+      postWebviewStatus(webview, "ok", "Deleted favourite color set.");
     }
 
     if (message.type === "applyFavorite") {
       try {
-        const result = await applyFavoriteById(context, message.favoriteId, { applyTo: message.applyTo });
-        postPickerStatus("ok", `Applied ${result.startColor} to ${result.endColor} in ${result.targetLabel} settings.`);
+        const result = await applyFavoriteById(context, message.favoriteId);
+        postWebviewStatus(webview, "ok", `Applied ${result.startColor} to ${result.endColor} in workspace settings.`);
       } catch (error) {
-        postPickerStatus("error", error instanceof Error ? error.message : String(error));
+        postWebviewStatus(webview, "error", error instanceof Error ? error.message : String(error));
       }
     }
   }, null, context.subscriptions);
 }
 
 /**
- * Sends a status line to the active picker if it is currently open.
+ * Sends a status line to the picker webview that originated the action.
  */
-function postPickerStatus(level, text) {
-  if (!pickerPanel) {
+function postWebviewStatus(webview, level, text) {
+  if (!webview || typeof webview.postMessage !== "function") {
     return;
   }
-  pickerPanel.webview.postMessage({ type: "status", level, text });
+  webview.postMessage({ type: "status", level, text });
 }
 
 /**
@@ -413,17 +488,11 @@ async function quickApply(context) {
     return;
   }
 
-  const pickedTarget = await pickTarget("Where should the generated workbench colors be written?");
-  if (!pickedTarget) {
-    return;
-  }
-
   await applyColorsWithMessage(context, {
     ...current,
     startColor,
     endColor,
-    intensity: Number(intensityInput),
-    applyTo: pickedTarget.id
+    intensity: Number(intensityInput)
   });
 }
 
@@ -491,7 +560,7 @@ async function applyFavoriteCommand(context) {
   try {
     const result = await applyFavoriteById(context, picked.favorite.id);
     vscode.window.showInformationMessage(
-      `Camaleone applied ${result.startColor} to ${result.endColor} in ${result.targetLabel} settings.`
+      `Camaleone applied ${result.startColor} to ${result.endColor} in workspace settings.`
     );
   } catch (error) {
     vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
@@ -505,7 +574,7 @@ async function applyColorsWithMessage(context, options) {
   try {
     const result = await applyColors(context, options);
     vscode.window.showInformationMessage(
-      `Camaleone applied ${result.startColor} to ${result.endColor} in ${result.targetLabel} settings.`
+      `Camaleone applied ${result.startColor} to ${result.endColor} in workspace settings.`
     );
   } catch (error) {
     vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
@@ -514,11 +583,11 @@ async function applyColorsWithMessage(context, options) {
 
 /**
  * Sanitizes incoming choices, generates workbench colors, and persists them to
- * the requested target.
+ * workspace settings.
  */
 async function applyColors(context, options) {
   const choices = sanitizeChoices(options);
-  const target = resolveTarget(choices.applyTo);
+  const target = resolveTarget();
   const generatedColors = createColorCustomizations(choices);
 
   await saveExtensionSettings(context, choices, target);
@@ -534,30 +603,13 @@ async function applyColors(context, options) {
 /**
  * Restores the colors that existed before Camaleone last patched a target.
  */
-async function clearGradient(context, requestedTarget) {
-  const target = requestedTarget ? resolveTarget(requestedTarget) : await pickTarget("Restore previous colors from which settings?", true);
-
-  if (!target) {
-    return;
-  }
-
-  if (target.id === "both") {
-    const workspaceCleared = await restoreWorkbenchColors(context, resolveTarget("workspace"));
-    const globalCleared = await restoreWorkbenchColors(context, resolveTarget("global"));
-    const count = Number(workspaceCleared) + Number(globalCleared);
-    vscode.window.showInformationMessage(
-      count > 0
-        ? "Camaleone restored tracked colors."
-        : "Camaleone did not find tracked colors to restore."
-    );
-    return;
-  }
-
+async function clearGradient(context) {
+  const target = resolveTarget();
   const didClear = await restoreWorkbenchColors(context, target);
   vscode.window.showInformationMessage(
     didClear
-      ? `Camaleone restored colors from ${target.label} settings.`
-      : `Camaleone did not find tracked colors in ${target.label} settings.`
+      ? "Camaleone restored colors from workspace settings."
+      : "Camaleone did not find tracked colors in workspace settings."
   );
 }
 
@@ -565,34 +617,14 @@ async function clearGradient(context, requestedTarget) {
  * Removes Camaleone-managed color customizations so the editor theme defaults
  * become visible again.
  */
-async function resetToDefault(context, requestedTarget) {
-  if (!requestedTarget) {
-    const targets = await resetIdeDefaults(context);
-    await context.globalState.update(LAST_CHOICES_KEY, createIdeDefaultChoices());
-    vscode.window.showInformationMessage(`Camaleone reset ${formatTargetLabels(targets)} colors to IDE defaults.`);
-    return;
-  }
-
-  const target = requestedTarget === "both" ? { id: "both" } : resolveTarget(requestedTarget);
-
-  if (!target) {
-    return;
-  }
-
-  if (target.id === "both") {
-    await resetWorkbenchDefaults(context, resolveTarget("workspace"));
-    await resetWorkbenchDefaults(context, resolveTarget("global"));
-    vscode.window.showInformationMessage("Camaleone reset workspace and global generated colors to IDE defaults.");
-    return;
-  }
-
-  await resetWorkbenchDefaults(context, target);
-  vscode.window.showInformationMessage(`Camaleone reset ${target.label} generated colors to IDE defaults.`);
+async function resetToDefault(context) {
+  const targets = await resetIdeDefaults(context);
+  await context.workspaceState.update(LAST_CHOICES_KEY, createIdeDefaultChoices());
+  vscode.window.showInformationMessage(`Camaleone reset ${formatTargetLabels(targets)} colors to IDE defaults.`);
 }
 
 /**
- * Resets every relevant target, preferring both workspace and global settings
- * when a workspace exists.
+ * Resets the current workspace target.
  */
 async function resetIdeDefaults(context) {
   const targets = getResetTargets();
@@ -608,12 +640,7 @@ async function resetIdeDefaults(context) {
  * Returns the settings scopes that can be reset in the current window.
  */
 function getResetTargets() {
-  const targets = [];
-  if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length) {
-    targets.push(resolveTarget("workspace"));
-  }
-  targets.push(resolveTarget("global"));
-  return targets;
+  return [resolveTarget()];
 }
 
 /**
@@ -628,25 +655,11 @@ function formatTargetLabels(targets) {
 }
 
 /**
- * Presents a target picker for workspace/global/both settings.
- */
-async function pickTarget(placeHolder, includeBoth = false) {
-  const hasWorkspace = Boolean(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length);
-  const items = [
-    ...(hasWorkspace ? [{ label: "Workspace", id: "workspace" }] : []),
-    { label: "Global", id: "global" },
-    ...(includeBoth && hasWorkspace ? [{ label: "Both", id: "both" }] : [])
-  ];
-  const picked = await vscode.window.showQuickPick(items, { placeHolder });
-  return picked;
-}
-
-/**
  * Merges remembered choices with explicit extension settings.
  */
 function getCurrentChoices(context) {
   const config = vscode.workspace.getConfiguration();
-  const remembered = context.globalState.get(LAST_CHOICES_KEY, {});
+  const remembered = context.workspaceState.get(LAST_CHOICES_KEY, {});
 
   return sanitizeChoices({
     startColor:
@@ -658,9 +671,7 @@ function getCurrentChoices(context) {
     intensity:
       remembered.intensity
       ?? getConfiguredValue(config, "intensity", DEFAULT_CHOICES.intensity),
-    applyTo:
-      remembered.applyTo
-      || getConfiguredValue(config, "applyTo", DEFAULT_CHOICES.applyTo),
+    applyTo: DEFAULT_CHOICES.applyTo,
     includeEditorAccent:
       remembered.includeEditorAccent
       ?? getConfiguredValue(config, "includeEditorAccent", DEFAULT_CHOICES.includeEditorAccent),
@@ -717,7 +728,6 @@ function hasConfiguredValue(inspection) {
 function sanitizeChoices(options) {
   const startColor = normalizeHex(options && options.startColor) || DEFAULT_CHOICES.startColor;
   const endColor = normalizeHex(options && options.endColor) || DEFAULT_CHOICES.endColor;
-  const applyTo = options && options.applyTo === "global" ? "global" : "workspace";
 
   return {
     startColor,
@@ -727,7 +737,7 @@ function sanitizeChoices(options) {
       0,
       100
     ),
-    applyTo,
+    applyTo: DEFAULT_CHOICES.applyTo,
     includeEditorAccent: Boolean(options && options.includeEditorAccent),
     monochromatic: Boolean(options && options.monochromatic),
     sober: options && options.sober !== undefined ? Boolean(options.sober) : DEFAULT_CHOICES.sober,
@@ -774,29 +784,13 @@ function sanitizeSurfaceOverrides(overrides) {
 }
 
 /**
- * Resolves a requested settings target to a concrete VS Code configuration
- * target, falling back to global settings when no workspace is open.
+ * Resolves the current workspace to a concrete VS Code configuration target.
  */
-function resolveTarget(requestedTarget) {
-  const normalized = requestedTarget === "global" ? "global" : "workspace";
+function resolveTarget() {
   const hasWorkspace = Boolean(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length);
 
-  if (normalized === "workspace" && !hasWorkspace) {
-    return {
-      id: "global",
-      label: "global",
-      configurationTarget: vscode.ConfigurationTarget.Global,
-      state: "global"
-    };
-  }
-
-  if (normalized === "global") {
-    return {
-      id: "global",
-      label: "global",
-      configurationTarget: vscode.ConfigurationTarget.Global,
-      state: "global"
-    };
+  if (!hasWorkspace) {
+    throw new Error("Open a workspace folder before applying Camaleone colors.");
   }
 
   return {
@@ -808,32 +802,29 @@ function resolveTarget(requestedTarget) {
 }
 
 /**
- * Remembers the last picker choices and optionally writes them as extension
- * configuration values.
+ * Remembers the last picker choices and writes them as workspace profile
+ * settings so the same palette is available the next time the workspace opens.
  */
 async function saveExtensionSettings(context, choices, target) {
   const config = vscode.workspace.getConfiguration();
   const rememberedChoices = {
     ...choices,
-    applyTo: target.id
+    applyTo: DEFAULT_CHOICES.applyTo
   };
 
-  await context.globalState.update(LAST_CHOICES_KEY, rememberedChoices);
-
-  if (!config.get(`${EXTENSION_PREFIX}.persistChoices`, false)) {
-    return;
-  }
+  await context.workspaceState.update(LAST_CHOICES_KEY, rememberedChoices);
 
   await config.update(`${EXTENSION_PREFIX}.startColor`, choices.startColor, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.endColor`, choices.endColor, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.intensity`, choices.intensity, target.configurationTarget);
-  await config.update(`${EXTENSION_PREFIX}.applyTo`, target.id, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.includeEditorAccent`, choices.includeEditorAccent, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.monochromatic`, choices.monochromatic, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.sober`, choices.sober, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.colorRelationship`, choices.colorRelationship, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.panelHarmony`, choices.panelHarmony, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.surfaceOverrides`, choices.surfaceOverrides, target.configurationTarget);
+  await config.update(`${EXTENSION_PREFIX}.applyTo`, undefined, target.configurationTarget);
+  await config.update(`${EXTENSION_PREFIX}.persistChoices`, undefined, target.configurationTarget);
 }
 
 /**
@@ -942,8 +933,22 @@ async function resetWorkbenchDefaults(context, target) {
   const nextColors = removeManagedWorkbenchColorKeys(currentColors);
 
   await updateWorkbenchColorCustomizations(config, nextColors, target.configurationTarget);
+  await clearSavedWorkspaceProfileSettings(context, target);
   await rememberResetPreviousState(getMemento(context, target), target, previousColors);
   return true;
+}
+
+/**
+ * Clears the saved workspace profile when the user explicitly resets Camaleone.
+ */
+async function clearSavedWorkspaceProfileSettings(context, target) {
+  const config = vscode.workspace.getConfiguration();
+  for (const key of WORKSPACE_PROFILE_SETTING_KEYS) {
+    await config.update(`${EXTENSION_PREFIX}.${key}`, undefined, target.configurationTarget);
+  }
+  await config.update(`${EXTENSION_PREFIX}.applyTo`, undefined, target.configurationTarget);
+  await config.update(`${EXTENSION_PREFIX}.persistChoices`, undefined, target.configurationTarget);
+  await context.workspaceState.update(LAST_CHOICES_KEY, createIdeDefaultChoices());
 }
 
 /**
@@ -1213,14 +1218,14 @@ async function deleteFavorite(context, favoriteId) {
 /**
  * Applies a favorite by id from either saved or built-in favorite lists.
  */
-async function applyFavoriteById(context, favoriteId, options = {}) {
+async function applyFavoriteById(context, favoriteId) {
   const favorite = getFavorites(context).find((entry) => entry.id === favoriteId);
   if (!favorite) {
     throw new Error("Saved favourite color set not found.");
   }
   return applyColors(context, {
     ...favorite,
-    applyTo: options.applyTo || favorite.applyTo
+    applyTo: DEFAULT_CHOICES.applyTo
   });
 }
 
@@ -1243,22 +1248,31 @@ function slugFavoriteName(name) {
 }
 
 /**
- * Creates a random readable palette with either analogous or complementary
- * color movement.
+ * Creates a random readable palette biased toward distinctive color movement.
  */
 function createSurprisePalette() {
+  const distinctive = Math.random() < SURPRISE_DISTINCT_PROBABILITY;
   const startColor = randomReadableColor();
   const startHsl = hexToHsl(startColor);
-  const complementary = Math.random() < 0.5;
-  const endHsl = complementary
-    ? { ...startHsl, h: rotateHue(startHsl.h, 180) }
-    : { ...startHsl, h: rotateHue(startHsl.h, Math.random() < 0.5 ? 32 : -32) };
+  const endHsl = createSurpriseEndHsl(startHsl, distinctive);
   const endColor = hslToHex({
     h: endHsl.h,
     s: Math.max(46, Math.min(88, startHsl.s + randomBetween(-8, 8))),
     l: Math.max(38, Math.min(64, startHsl.l + randomBetween(-7, 7)))
   });
-  return { startColor, endColor, relationship: complementary ? "complementary" : "analogous" };
+  return { startColor, endColor, relationship: distinctive ? "complementary" : "analogous" };
+}
+
+/**
+ * Picks the end hue for a surprise palette.
+ */
+function createSurpriseEndHsl(startHsl, distinctive) {
+  const direction = Math.random() < 0.5 ? -1 : 1;
+  const hueDistance = distinctive
+    ? randomBetween(SURPRISE_DISTINCT_HUE_MIN, SURPRISE_DISTINCT_HUE_MAX)
+    : randomBetween(SURPRISE_SIMILAR_HUE_MIN, SURPRISE_SIMILAR_HUE_MAX);
+
+  return { ...startHsl, h: rotateHue(startHsl.h, direction * hueDistance) };
 }
 
 /**
@@ -1807,12 +1821,21 @@ function getNonce() {
 }
 
 /**
+ * Builds panel options with local asset roots when extensionUri is available.
+ */
+function createPickerPanelOptions(context) {
+  return {
+    ...createPickerWebviewOptions(context),
+    retainContextWhenHidden: true
+  };
+}
+
+/**
  * Builds webview options with local asset roots when extensionUri is available.
  */
 function createPickerWebviewOptions(context) {
   const options = {
-    enableScripts: true,
-    retainContextWhenHidden: true
+    enableScripts: true
   };
 
   if (context && context.extensionUri && vscode.Uri && typeof vscode.Uri.joinPath === "function") {
@@ -1828,7 +1851,9 @@ function createPickerWebviewOptions(context) {
 function createPickerIconUris(context, webview) {
   return {
     title: getWebviewAssetUri(context, webview, "assets", "icons", "png", "camaleone-sil-2.png"),
-    saveFavorite: getWebviewAssetUri(context, webview, "assets", "icons", "png", "camaleone-sil-3.png")
+    saveFavorite: getWebviewAssetUri(context, webview, "assets", "icons", "png", "camaleone-sil-3.png"),
+    colorPicker: getWebviewAssetUri(context, webview, "assets", "icons", "png", "color-picker.png"),
+    undo: getWebviewAssetUri(context, webview, "assets", "icons", "png", "undo.png")
   };
 }
 
@@ -1868,12 +1893,29 @@ function getPickerHtml(webview, state) {
   const nonce = getNonce();
   const safeState = JSON.stringify(state).replace(/</g, "\\u003c");
   const pickerIcons = state && state.pickerIcons ? state.pickerIcons : {};
+  const isActivityBarLayout = state && state.layout === "activityBar";
+  const bodyClass = isActivityBarLayout ? "activity-pane" : "standard-pane";
   const titleIconHtml = pickerIcons.title
     ? `<img class="title-icon" src="${escapeHtmlAttribute(pickerIcons.title)}" alt="" aria-hidden="true">`
     : "";
   const saveFavoriteIconHtml = pickerIcons.saveFavorite
     ? `<img class="button-image-icon save-favorite-icon" src="${escapeHtmlAttribute(pickerIcons.saveFavorite)}" alt="" aria-hidden="true">`
     : '<span class="button-icon" aria-hidden="true">&#9733;</span>';
+  const revertIconHtml = pickerIcons.undo
+    ? `<span class="button-icon icon-image-mask icon-revert" style="--icon-mask: url('${escapeHtmlAttribute(pickerIcons.undo)}');" aria-hidden="true"></span>`
+    : '<svg class="button-icon icon-svg icon-revert" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.25 3.25H3.25V.25"></path><path d="M3.45 3.25A5.4 5.4 0 1 1 2.6 8"></path><path d="M3.25 3.25 6.7 6.7"></path></svg>';
+  const resetIconHtml = '<svg class="button-icon icon-svg icon-reset" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.75 2.25h3v3"></path><path d="M12.55 2.25A5.4 5.4 0 1 0 13.4 8"></path><path d="M12.75 2.25 9.3 5.7"></path></svg>';
+  const surfaceRevertButtonHtml = JSON.stringify(`${revertIconHtml}<span>Revert</span>`);
+  const surfaceRevertIconOnlyHtml = JSON.stringify(revertIconHtml);
+  const customizeSectionHtml = isActivityBarLayout
+    ? ""
+    : `
+      <section class="customize" aria-label="Customize colors">
+        <div class="customize-head">
+          <h2>Customize</h2>
+        </div>
+        <div id="surfaceControls" class="surface-controls"></div>
+      </section>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -2093,24 +2135,18 @@ function getPickerHtml(webview, state) {
       background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.12));
     }
 
+    button.primary-action,
     button.secondary {
       color: var(--vscode-button-secondaryForeground, var(--vscode-sideBar-foreground, var(--vscode-foreground)));
+      border-color: var(--vscode-button-border, var(--vscode-panel-border));
       background: transparent;
     }
 
+    button.primary-action:hover,
     button.secondary:hover {
       color: var(--vscode-button-secondaryForeground, var(--vscode-sideBar-foreground, var(--vscode-foreground)));
+      border-color: var(--vscode-focusBorder);
       background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.12));
-    }
-
-    button.primary-action {
-      color: var(--vscode-button-foreground);
-      border-color: color-mix(in srgb, var(--vscode-button-background) 68%, transparent);
-      background: color-mix(in srgb, var(--vscode-button-background) 18%, transparent);
-    }
-
-    button.primary-action:hover {
-      background: color-mix(in srgb, var(--vscode-button-hoverBackground) 28%, transparent);
     }
 
     .button-icon {
@@ -2126,6 +2162,32 @@ function getPickerHtml(webview, state) {
       border-radius: 999px;
       border: 1px solid currentColor;
       opacity: 0.78;
+    }
+
+    .button-icon.icon-svg {
+      width: 17px;
+      height: 17px;
+      flex-basis: 17px;
+      border: 0;
+      border-radius: 0;
+      opacity: 0.9;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .button-icon.icon-image-mask {
+      width: 17px;
+      height: 17px;
+      flex-basis: 17px;
+      border: 0;
+      border-radius: 0;
+      opacity: 0.9;
+      background: currentColor;
+      -webkit-mask: var(--icon-mask) center / contain no-repeat;
+      mask: var(--icon-mask) center / contain no-repeat;
     }
 
     .button-image-icon {
@@ -2211,6 +2273,13 @@ function getPickerHtml(webview, state) {
     .surface-preview span {
       color: currentColor;
       opacity: 0.76;
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .surface-preview-generated {
+      color: currentColor;
+      opacity: 0.78;
       font-size: 11px;
       line-height: 1.3;
     }
@@ -2414,9 +2483,233 @@ function getPickerHtml(webview, state) {
       justify-content: end;
     }
 
+    body.activity-pane {
+      padding: 10px;
+    }
+
+    body.activity-pane .page {
+      max-width: none;
+      gap: 10px;
+    }
+
+    body.activity-pane .intro {
+      display: none;
+    }
+
+    body.activity-pane .panel-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    body.activity-pane .controls,
+    body.activity-pane .preview,
+    body.activity-pane .extras,
+    body.activity-pane .actions {
+      border-radius: 6px;
+    }
+
+    body.activity-pane .controls {
+      padding: 12px;
+    }
+
+    body.activity-pane .preview {
+      display: grid;
+      gap: 1px;
+      background: rgba(127, 127, 127, 0.16);
+    }
+
+    body.activity-pane .gradient-strip {
+      height: 46px;
+    }
+
+    body.activity-pane .surface-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: 78px;
+      gap: 1px;
+      column-gap: 1px;
+      row-gap: 3px;
+      align-items: stretch;
+      min-height: 0;
+      background: rgba(127, 127, 127, 0.14);
+    }
+
+    body.activity-pane .surface-preview {
+      grid-template-rows: minmax(0, 1fr) auto;
+      box-sizing: border-box;
+      height: 100%;
+      min-height: 0;
+      gap: 3px;
+      padding: 7px;
+      overflow: hidden;
+      box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.035);
+    }
+
+    body.activity-pane .surface-control-inline {
+      display: grid;
+      grid-template-rows: 18px 22px;
+      gap: 3px;
+      align-content: start;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    body.activity-pane .surface-inline-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: center;
+      height: 18px;
+      min-width: 0;
+    }
+
+    body.activity-pane .surface-inline-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 22px;
+      gap: 4px;
+      align-items: stretch;
+      min-width: 0;
+      height: 22px;
+    }
+
+    body.activity-pane .surface-color-title {
+      min-width: 0;
+      color: var(--surface-action-foreground, currentColor);
+      opacity: 0.9;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 9.5px;
+      line-height: 1.2;
+      font-weight: 600;
+    }
+
+    body.activity-pane .surface-color-button {
+      display: grid;
+      grid-template-columns: auto;
+      align-items: center;
+      justify-content: center;
+      height: 22px;
+      min-height: 0;
+      width: 100%;
+      padding: 0;
+      color: var(--surface-action-foreground, currentColor);
+      border-color: var(--surface-action-border, currentColor);
+      background: var(--surface-action-background, transparent);
+    }
+
+    body.activity-pane .surface-color-button:hover {
+      color: var(--surface-action-foreground, currentColor);
+      border-color: var(--surface-action-border, currentColor);
+      background: var(--surface-action-hoverBackground, rgba(127, 127, 127, 0.18));
+    }
+
+    body.activity-pane .surface-picker-icon {
+      position: relative;
+      width: 14px;
+      height: 14px;
+      flex: 0 0 14px;
+      border: 1px solid currentColor;
+      border-radius: 4px;
+      opacity: 0.88;
+    }
+
+    body.activity-pane .surface-picker-icon-image {
+      width: 14px;
+      height: 14px;
+      flex: 0 0 14px;
+      object-fit: contain;
+      opacity: 0.9;
+      filter: var(--surface-picker-filter, brightness(0));
+    }
+
+    body.activity-pane .surface-picker-icon::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: 2px;
+      background: currentColor;
+      opacity: 0.24;
+    }
+
+    body.activity-pane .surface-picker-icon::after {
+      content: "";
+      position: absolute;
+      right: -2px;
+      bottom: -3px;
+      width: 8px;
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+      transform: rotate(-45deg);
+      transform-origin: center;
+    }
+
+    body.activity-pane .surface-native-color,
+    body.activity-pane .surface-hidden-text {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    body.activity-pane .surface-reset {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      min-height: 0;
+      padding: 0;
+      font-size: 9.5px;
+      color: var(--surface-action-foreground, currentColor);
+      border-color: var(--surface-action-border, currentColor);
+      background: var(--surface-action-background, transparent);
+      opacity: 0.92;
+    }
+
+    body.activity-pane .surface-reset .button-icon {
+      width: 13px;
+      height: 13px;
+      flex-basis: 13px;
+    }
+
+    body.activity-pane .surface-reset .button-icon + span {
+      display: none;
+    }
+
+    body.activity-pane .surface-preview-generated {
+      align-self: end;
+      min-height: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 9.5px;
+      line-height: 1.2;
+    }
+
+    body.activity-pane .surface-reset:hover {
+      color: var(--surface-action-foreground, currentColor);
+      border-color: var(--surface-action-border, currentColor);
+      background: var(--surface-action-hoverBackground, rgba(127, 127, 127, 0.18));
+    }
+
+    body.activity-pane .surface-reset:disabled {
+      color: var(--surface-action-foreground, currentColor);
+      border-color: transparent;
+      background: transparent;
+      opacity: 0.18;
+    }
+
+    body.activity-pane .options-stack {
+      grid-template-rows: auto auto;
+    }
+
     @media (max-width: 860px) {
       body {
         padding: 16px;
+      }
+
+      body.activity-pane {
+        padding: 10px;
       }
 
       .panel-grid {
@@ -2425,6 +2718,10 @@ function getPickerHtml(webview, state) {
 
       .surface-grid {
         grid-template-columns: 1fr;
+      }
+
+      body.activity-pane .surface-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .surface-controls,
@@ -2441,9 +2738,15 @@ function getPickerHtml(webview, state) {
         justify-content: start;
       }
     }
+
+    @media (max-width: 320px) {
+      body.activity-pane .surface-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
-<body>
+<body class="${bodyClass}">
   <main class="page">
     <header class="intro">
       <div class="brand-lockup">
@@ -2498,12 +2801,7 @@ function getPickerHtml(webview, state) {
         <div id="surfacePreview" class="surface-grid"></div>
       </section>
 
-      <section class="customize" aria-label="Customize colors">
-        <div class="customize-head">
-          <h2>Customize</h2>
-        </div>
-        <div id="surfaceControls" class="surface-controls"></div>
-      </section>
+${customizeSectionHtml}
 
       <div class="options-stack">
         <section class="extras" aria-label="Options">
@@ -2560,17 +2858,6 @@ function getPickerHtml(webview, state) {
             </div>
 
             <div class="options-section">
-              <div class="options-section-title">Target</div>
-              <div class="field option-item">
-                <label for="applyTo">Apply to</label>
-                <select id="applyTo">
-                  <option value="workspace">Workspace settings</option>
-                  <option value="global">Global settings</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="options-section">
               <div class="options-section-title">Presets</div>
               <div class="favorite-row">
                 <select id="favorites" aria-label="Favourite color sets"></select>
@@ -2587,8 +2874,8 @@ function getPickerHtml(webview, state) {
 
           <div class="actions-container">
             <div class="button-row compact options-buttons">
-              <button id="clear" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#8634;</span><span>Restore previous</span></button>
-              <button id="resetDefault" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#8635;</span><span>Reset IDE defaults</span></button>
+              <button id="clear" class="secondary" type="button">${revertIconHtml}<span>Restore previous</span></button>
+              <button id="resetDefault" class="secondary" type="button">${resetIconHtml}<span>Reset IDE defaults</span></button>
               <button id="saveFavorite" class="secondary" type="button">${saveFavoriteIconHtml}<span>Save as favourite...</span></button>
             </div>
           </div>
@@ -2621,6 +2908,13 @@ function getPickerHtml(webview, state) {
      */
     const vscode = acquireVsCodeApi();
     const state = ${safeState};
+    const isActivityPane = state && state.layout === "activityBar";
+    const colorPickerIconSrc = state.pickerIcons && state.pickerIcons.colorPicker ? state.pickerIcons.colorPicker : "";
+    const surpriseDistinctProbability = ${SURPRISE_DISTINCT_PROBABILITY};
+    const surpriseDistinctHueMin = ${SURPRISE_DISTINCT_HUE_MIN};
+    const surpriseDistinctHueMax = ${SURPRISE_DISTINCT_HUE_MAX};
+    const surpriseSimilarHueMin = ${SURPRISE_SIMILAR_HUE_MIN};
+    const surpriseSimilarHueMax = ${SURPRISE_SIMILAR_HUE_MAX};
 
     const elements = {
       startColor: document.getElementById("startColor"),
@@ -2629,7 +2923,6 @@ function getPickerHtml(webview, state) {
       endText: document.getElementById("endText"),
       intensity: document.getElementById("intensity"),
       intensityValue: document.getElementById("intensityValue"),
-      applyTo: document.getElementById("applyTo"),
       includeEditorAccent: document.getElementById("includeEditorAccent"),
       monochromatic: document.getElementById("monochromatic"),
       sober: document.getElementById("sober"),
@@ -2664,15 +2957,15 @@ function getPickerHtml(webview, state) {
      * Creates dynamic controls, loads initial state, and registers UI events.
      */
     function initialize() {
-      createSurfaceControls();
-      createSurfacePreview();
+      if (isActivityPane) {
+        createSurfacePreview();
+      } else {
+        createSurfaceControls();
+        createSurfacePreview();
+      }
       renderFavorites();
       setChoices(state);
       registerHelpPopups();
-
-      if (!state.hasWorkspace) {
-        elements.applyTo.querySelector('option[value="workspace"]').disabled = true;
-      }
 
       elements.startColor.addEventListener("input", () => syncFromColor(elements.startColor, elements.startText));
       elements.endColor.addEventListener("input", () => {
@@ -2684,7 +2977,6 @@ function getPickerHtml(webview, state) {
       });
       elements.intensity.addEventListener("input", () => updatePreviewAndApply(60));
       elements.intensity.addEventListener("change", () => updatePreviewAndApply(0));
-      elements.applyTo.addEventListener("change", () => updatePreviewAndApply(0));
       elements.includeEditorAccent.addEventListener("change", () => updatePreviewAndApply(0));
       elements.sober.addEventListener("change", () => updatePreviewAndApply(0));
       elements.monochromatic.addEventListener("change", () => {
@@ -2744,14 +3036,68 @@ function getPickerHtml(webview, state) {
     }
 
     /**
-     * Builds one editable color row per surface definition.
+     * Builds one editable color row for a surface definition.
      */
-    function createSurfaceControls() {
-      elements.surfaceControls.textContent = "";
-      for (const surface of surfaces) {
-        const row = document.createElement("div");
-        row.className = "surface-control";
+    function createSurfaceControl(surface, options = {}) {
+      const row = document.createElement("div");
+      row.className = options.inline ? "surface-control surface-control-inline" : "surface-control";
 
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+
+      const resetButton = document.createElement("button");
+      resetButton.type = "button";
+      resetButton.className = "secondary surface-reset";
+      resetButton.innerHTML = ${surfaceRevertButtonHtml};
+      resetButton.disabled = true;
+      resetButton.setAttribute("aria-label", "Revert " + surface.label + " to suggested color");
+
+      const colorRow = document.createElement("div");
+      colorRow.className = "color-row";
+      const color = document.createElement("input");
+      color.type = "color";
+      color.setAttribute("aria-label", surface.label + " color picker");
+      const text = document.createElement("input");
+      text.type = "text";
+      text.spellcheck = false;
+      text.inputMode = "text";
+
+      let pickerButton;
+      if (options.inline) {
+        const inlineHead = document.createElement("div");
+        inlineHead.className = "surface-inline-head";
+
+        const label = document.createElement("div");
+        label.className = "field-label surface-color-title";
+        label.textContent = surface.label;
+
+        pickerButton = document.createElement("button");
+        pickerButton.type = "button";
+        pickerButton.className = "surface-color-button";
+        pickerButton.setAttribute("aria-label", surface.label + " color picker");
+
+        const pickerIcon = colorPickerIconSrc ? document.createElement("img") : document.createElement("span");
+        pickerIcon.className = colorPickerIconSrc ? "surface-picker-icon-image" : "surface-picker-icon";
+        pickerIcon.setAttribute("aria-hidden", "true");
+        if (colorPickerIconSrc) {
+          pickerIcon.src = colorPickerIconSrc;
+          pickerIcon.alt = "";
+          pickerIcon.loading = "lazy";
+        }
+
+        color.className = "surface-native-color";
+        text.className = "surface-hidden-text";
+        resetButton.classList.add("surface-reset-icon");
+        resetButton.innerHTML = ${surfaceRevertIconOnlyHtml};
+
+        const actions = document.createElement("div");
+        actions.className = "surface-inline-actions";
+
+        inlineHead.append(label);
+        pickerButton.append(pickerIcon);
+        actions.append(pickerButton, resetButton);
+        row.append(inlineHead, actions, color, text);
+      } else {
         const head = document.createElement("div");
         head.className = "surface-head";
 
@@ -2763,97 +3109,111 @@ function getPickerHtml(webview, state) {
         label.textContent = surface.label;
 
         title.append(label);
-
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-
-        const resetButton = document.createElement("button");
-        resetButton.type = "button";
-        resetButton.className = "secondary surface-reset";
-        resetButton.innerHTML = '<span class="button-icon" aria-hidden="true">&#8630;</span><span>Revert</span>';
-        resetButton.disabled = true;
-        resetButton.setAttribute("aria-label", "Revert " + surface.label + " to suggested color");
-
         head.append(title, resetButton);
-
-        const colorRow = document.createElement("div");
-        colorRow.className = "color-row";
-        const color = document.createElement("input");
-        color.type = "color";
-        color.setAttribute("aria-label", surface.label + " color picker");
-        const text = document.createElement("input");
-        text.type = "text";
-        text.spellcheck = false;
-        text.inputMode = "text";
         colorRow.append(color, text);
         row.append(head, colorRow);
+      }
 
-        checkbox.addEventListener("change", () => {
-          color.disabled = !checkbox.checked;
-          text.disabled = !checkbox.checked;
-          checkbox.dataset.custom = checkbox.checked ? "true" : "false";
-          resetButton.disabled = checkbox.dataset.custom !== "true";
-          updatePreviewAndApply(0);
-        });
-        // Color edits immediately mark a surface as a user override.
-        const markCustomSurface = () => {
-          checkbox.checked = true;
-          checkbox.dataset.custom = "true";
-          color.disabled = false;
-          text.disabled = false;
-          resetButton.disabled = false;
-        };
+      checkbox.addEventListener("change", () => {
+        color.disabled = !checkbox.checked;
+        text.disabled = !checkbox.checked;
+        checkbox.dataset.custom = checkbox.checked ? "true" : "false";
+        resetButton.disabled = checkbox.dataset.custom !== "true";
+        updatePreviewAndApply(0);
+      });
+      // Color edits immediately mark a surface as a user override.
+      const markCustomSurface = () => {
+        checkbox.checked = true;
+        checkbox.dataset.custom = "true";
+        color.disabled = false;
+        text.disabled = false;
+        resetButton.disabled = false;
+      };
 
-        color.addEventListener("input", () => {
-          markCustomSurface();
-          text.value = color.value;
-          updatePreviewAndApply(120);
-        });
-        color.addEventListener("change", () => {
-          markCustomSurface();
-          text.value = color.value;
-          updatePreviewAndApply(0);
-        });
-        text.addEventListener("input", () => {
-          const normalized = normalizeHex(text.value);
-          if (normalized) {
-            markCustomSurface();
-            color.value = normalized;
-            updatePreviewAndApply(180);
-            return;
-          }
-          updatePreview();
-        });
-        text.addEventListener("change", () => {
-          const normalized = normalizeHex(text.value);
-          if (!normalized) {
-            return;
-          }
+      color.addEventListener("input", () => {
+        markCustomSurface();
+        text.value = color.value;
+        updatePreviewAndApply(120);
+      });
+      color.addEventListener("change", () => {
+        markCustomSurface();
+        text.value = color.value;
+        updatePreviewAndApply(0);
+      });
+      text.addEventListener("input", () => {
+        const normalized = normalizeHex(text.value);
+        if (normalized) {
           markCustomSurface();
           color.value = normalized;
+          updatePreviewAndApply(180);
+          return;
+        }
+        updatePreview();
+      });
+      text.addEventListener("change", () => {
+        const normalized = normalizeHex(text.value);
+        if (!normalized) {
+          return;
+        }
+        markCustomSurface();
+        color.value = normalized;
           text.value = normalized;
           updatePreviewAndApply(0);
+      });
+      if (pickerButton) {
+        pickerButton.addEventListener("click", () => {
+          if (!color.disabled) {
+            color.click();
+          }
         });
-        resetButton.addEventListener("click", () => revertSurfaceOverride(surface.id));
+      }
+      resetButton.addEventListener("click", () => revertSurfaceOverride(surface.id));
 
-        surfaceControlMap.set(surface.id, { checkbox, color, text, resetButton });
-        elements.surfaceControls.append(row);
+      return {
+        row,
+        control: { checkbox, color, text, resetButton, pickerButton }
+      };
+    }
+
+    /**
+     * Builds one editable color row per surface definition.
+     */
+    function createSurfaceControls() {
+      if (!elements.surfaceControls) {
+        return;
+      }
+
+      elements.surfaceControls.textContent = "";
+      for (const surface of surfaces) {
+        const created = createSurfaceControl(surface);
+        surfaceControlMap.set(surface.id, created.control);
+        elements.surfaceControls.append(created.row);
       }
     }
 
     /**
-     * Builds the palette preview tiles shown above the customization form.
+     * Builds the palette preview tiles. In the Activity Bar pane the editable
+     * color controls live directly on these first color cards.
      */
     function createSurfacePreview() {
       elements.surfacePreview.textContent = "";
       for (const surface of surfaces) {
         const preview = document.createElement("div");
         preview.className = "surface-preview";
-        const strong = document.createElement("strong");
-        strong.textContent = surface.label;
         const hex = document.createElement("span");
         hex.textContent = "";
-        preview.append(strong, hex);
+
+        if (isActivityPane) {
+          const created = createSurfaceControl(surface, { inline: true });
+          hex.className = "surface-preview-generated";
+          surfaceControlMap.set(surface.id, created.control);
+          preview.append(created.row, hex);
+        } else {
+          const strong = document.createElement("strong");
+          strong.textContent = surface.label;
+          preview.append(strong, hex);
+        }
+
         surfacePreviewMap.set(surface.id, { preview, hex });
         elements.surfacePreview.append(preview);
       }
@@ -2871,7 +3231,6 @@ function getPickerHtml(webview, state) {
       elements.endColor.value = endColor;
       elements.endText.value = endColor;
       elements.intensity.value = String(Number.isFinite(Number(next.intensity)) ? next.intensity : state.defaultChoices.intensity);
-      elements.applyTo.value = state.hasWorkspace ? (next.applyTo || state.defaultChoices.applyTo) : "global";
       elements.includeEditorAccent.checked = Boolean(next.includeEditorAccent);
       elements.monochromatic.checked = Boolean(next.monochromatic);
       elements.sober.checked = Boolean(next.sober);
@@ -2945,7 +3304,7 @@ function getPickerHtml(webview, state) {
         startColor: normalizeHex(elements.startText.value) || elements.startColor.value,
         endColor: normalizeHex(elements.endText.value) || elements.endColor.value,
         intensity: Number(elements.intensity.value),
-        applyTo: elements.applyTo.value,
+        applyTo: "workspace",
         includeEditorAccent: elements.includeEditorAccent.checked,
         monochromatic: elements.monochromatic.checked,
         sober: elements.sober.checked,
@@ -3269,6 +3628,19 @@ function getPickerHtml(webview, state) {
     }
 
     /**
+     * Sets per-card action colors so inline controls stay readable on both
+     * light and dark generated surface colors.
+     */
+    function setActivityPaneActionContrast(element, foreground) {
+      const useLightInk = foreground === "#ffffff";
+      element.style.setProperty("--surface-action-foreground", foreground);
+      element.style.setProperty("--surface-action-border", useLightInk ? "rgba(255, 255, 255, 0.62)" : "rgba(0, 0, 0, 0.48)");
+      element.style.setProperty("--surface-action-background", useLightInk ? "rgba(255, 255, 255, 0.14)" : "rgba(0, 0, 0, 0.10)");
+      element.style.setProperty("--surface-action-hoverBackground", useLightInk ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.16)");
+      element.style.setProperty("--surface-picker-filter", useLightInk ? "brightness(0) invert(1)" : "brightness(0)");
+    }
+
+    /**
      * Renders the gradient strip, surface cards, labels, and control defaults.
      */
     function updatePreview() {
@@ -3297,8 +3669,12 @@ function getPickerHtml(webview, state) {
         }
 
         if (preview) {
+          const foreground = contrast(effectivePreviewColor(color, base));
           preview.preview.style.background = color;
-          preview.preview.style.color = contrast(effectivePreviewColor(color, base));
+          preview.preview.style.color = foreground;
+          if (isActivityPane) {
+            setActivityPaneActionContrast(preview.preview, foreground);
+          }
           preview.hex.textContent = color;
         }
       }
@@ -3348,20 +3724,14 @@ function getPickerHtml(webview, state) {
      * Requests restoration of the previous tracked workbench colors.
      */
     function postClear() {
-      vscode.postMessage({
-        type: "clear",
-        applyTo: elements.applyTo.value
-      });
+      vscode.postMessage({ type: "clear" });
     }
 
     /**
      * Requests removal of Camaleone-managed color customizations.
      */
     function postResetDefault() {
-      vscode.postMessage({
-        type: "resetDefault",
-        applyTo: elements.applyTo.value
-      });
+      vscode.postMessage({ type: "resetDefault" });
     }
 
     /**
@@ -3369,12 +3739,10 @@ function getPickerHtml(webview, state) {
      */
     function surpriseMe() {
       selectedFavoriteName = undefined;
+      const distinctive = Math.random() < surpriseDistinctProbability;
       const start = randomReadableColor();
       const startHsl = hexToHsl(start);
-      const complementary = Math.random() < 0.5;
-      const endHsl = complementary
-        ? { ...startHsl, h: rotateHue(startHsl.h, 180) }
-        : { ...startHsl, h: rotateHue(startHsl.h, Math.random() < 0.5 ? 32 : -32) };
+      const endHsl = createSurpriseEndHsl(startHsl, distinctive);
       const end = hslToHex({
         h: endHsl.h,
         s: Math.max(46, Math.min(88, startHsl.s + randomBetween(-8, 8))),
@@ -3386,12 +3754,24 @@ function getPickerHtml(webview, state) {
       elements.endColor.value = end;
       elements.endText.value = end;
       elements.monochromatic.checked = false;
-      elements.panelHarmony.value = complementary ? "complementary" : "analogous";
+      elements.panelHarmony.value = distinctive ? "complementary" : "analogous";
       clearSurfaceOverrides();
-      elements.surpriseNote.textContent = complementary
-        ? "Generated a complementary color pair."
+      elements.surpriseNote.textContent = distinctive
+        ? "Generated a distinctive color pair."
         : "Generated an analogous color pair.";
       updatePreviewAndApply(0);
+    }
+
+    /**
+     * Picks the end hue for a surprise preview palette.
+     */
+    function createSurpriseEndHsl(startHsl, distinctive) {
+      const direction = Math.random() < 0.5 ? -1 : 1;
+      const hueDistance = distinctive
+        ? randomBetween(surpriseDistinctHueMin, surpriseDistinctHueMax)
+        : randomBetween(surpriseSimilarHueMin, surpriseSimilarHueMax);
+
+      return { ...startHsl, h: rotateHue(startHsl.h, direction * hueDistance) };
     }
 
     /**
@@ -3595,10 +3975,9 @@ function getPickerHtml(webview, state) {
       if (!favorite) {
         return;
       }
-      const target = elements.applyTo.value;
       selectedFavoriteName = favorite.name;
-      setChoices({ ...favorite, applyTo: target });
-      vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id, applyTo: target });
+      setChoices(favorite);
+      vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id });
     }
 
     /**
@@ -3639,6 +4018,7 @@ module.exports = {
     SURFACE_CONFIGS,
     applyColors,
     applyFavoriteById,
+    applySavedWorkspaceProfileOnActivation,
     createColorCustomizations,
     createIdeDefaultChoices,
     createSurprisePalette,

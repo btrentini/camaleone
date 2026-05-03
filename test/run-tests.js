@@ -15,6 +15,8 @@ const inputBoxRequests = [];
 const quickPickResponses = [];
 const quickPickRequests = [];
 const treeDataProviders = new Map();
+const webviewViewProviders = new Map();
+const webviewPanels = [];
 
 function createMemento(initial = {}) {
   const store = new Map(Object.entries(initial));
@@ -52,6 +54,23 @@ const configuration = {
   }
 };
 
+function createMockWebview() {
+  const webview = {
+    cspSource: "vscode-webview:",
+    html: "",
+    options: {},
+    onDidReceiveMessage(handler) {
+      webview.messageHandler = handler;
+      return { dispose() {} };
+    },
+    postMessage(message) {
+      panelMessages.push(message);
+      return Promise.resolve(true);
+    }
+  };
+  return webview;
+}
+
 const vscodeMock = {
   commands: {
     registerCommand(id, handler) {
@@ -64,18 +83,11 @@ const vscodeMock = {
     activeColorTheme: { kind: 2 },
     createWebviewPanel() {
       const panel = {
-        webview: {
-          cspSource: "vscode-webview:",
-          html: "",
-          onDidReceiveMessage() {},
-          postMessage(message) {
-            panelMessages.push(message);
-            return Promise.resolve(true);
-          }
-        },
+        webview: createMockWebview(),
         reveal() {},
         onDidDispose() {}
       };
+      webviewPanels.push(panel);
       return panel;
     },
     showInformationMessage(message) {
@@ -103,6 +115,10 @@ const vscodeMock = {
     },
     registerTreeDataProvider(id, provider) {
       treeDataProviders.set(id, provider);
+      return { dispose() {} };
+    },
+    registerWebviewViewProvider(id, provider, options) {
+      webviewViewProviders.set(id, { provider, options });
       return { dispose() {} };
     }
   },
@@ -145,12 +161,18 @@ function resetState() {
   quickPickResponses.length = 0;
   quickPickRequests.length = 0;
   treeDataProviders.clear();
+  webviewViewProviders.clear();
+  webviewPanels.length = 0;
   configValues.clear();
   vscodeMock.window.activeColorTheme = { kind: 2 };
 }
 
 function textFile(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+}
+
+function binaryFile(relativePath) {
+  return fs.readFileSync(path.join(repoRoot, relativePath));
 }
 
 function nonSoberChoices(overrides = {}) {
@@ -161,13 +183,14 @@ function nonSoberChoices(overrides = {}) {
   };
 }
 
-test("activates Camaleone commands", () => {
+test("activates Camaleone commands and renders the picker in the Activity Bar", async () => {
   resetState();
-  extension.activate({
+  const context = {
     subscriptions: [],
     globalState: createMemento(),
     workspaceState: createMemento()
-  });
+  };
+  extension.activate(context);
 
   for (const commandId of [
     "camaleone.openPicker",
@@ -182,9 +205,34 @@ test("activates Camaleone commands", () => {
     assert.equal(commands.has(commandId), true, `${commandId} should be registered`);
   }
 
-  assert.equal(treeDataProviders.has("camaleone.controls"), true);
-  const provider = treeDataProviders.get("camaleone.controls");
-  assert.deepEqual(provider.getChildren(), []);
+  assert.equal(treeDataProviders.has("camaleone.controls"), false);
+  assert.equal(webviewViewProviders.has("camaleone.controls"), true);
+  const registration = webviewViewProviders.get("camaleone.controls");
+  assert.deepEqual(registration.options, { webviewOptions: { retainContextWhenHidden: true } });
+
+  const originalRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    await commands.get("camaleone.openPicker")();
+    const panelHtml = webviewPanels[0].webview.html;
+    const activityWebview = createMockWebview();
+
+    registration.provider.resolveWebviewView({ webview: activityWebview });
+
+    assert.notEqual(activityWebview.html, panelHtml);
+    assert.ok(panelHtml.includes('<body class="standard-pane">'));
+    assert.ok(panelHtml.includes('<section class="customize" aria-label="Customize colors">'));
+    assert.ok(activityWebview.html.includes('<body class="activity-pane">'));
+    assert.equal(activityWebview.html.includes('<section class="customize" aria-label="Customize colors">'), false);
+    assert.ok(activityWebview.html.includes('"layout":"activityBar"'));
+    assert.ok(activityWebview.html.includes("Apply colors"));
+    assert.ok(activityWebview.html.includes("Save as favourite..."));
+    assert.ok(activityWebview.html.includes("surface-control-inline"));
+    assert.equal(activityWebview.html.includes("Open Camaleone Setup"), false);
+    assert.equal(typeof activityWebview.messageHandler, "function");
+  } finally {
+    Math.random = originalRandom;
+  }
 });
 
 test("sanitizes invalid choices and preserves defaults", () => {
@@ -206,7 +254,7 @@ test("sanitizes invalid choices and preserves defaults", () => {
   assert.equal(choices.startColor, "#aabbcc");
   assert.equal(choices.endColor, testApi.DEFAULT_CHOICES.endColor);
   assert.equal(choices.intensity, 100);
-  assert.equal(choices.applyTo, "global");
+  assert.equal(choices.applyTo, "workspace");
   assert.equal(choices.includeEditorAccent, true);
   assert.equal(choices.monochromatic, true);
   assert.equal(choices.sober, true);
@@ -544,7 +592,7 @@ test("IDE default picker state uses equal active-theme colors", () => {
 
   assert.equal(darkChoices.startColor, "#1e1e1e");
   assert.equal(darkChoices.endColor, "#1e1e1e");
-  assert.equal(darkChoices.applyTo, "global");
+  assert.equal(darkChoices.applyTo, "workspace");
   assert.equal(darkChoices.sober, true);
   assert.deepEqual(darkChoices.surfaceOverrides, {});
   assert.equal(darkColors["titleBar.activeBackground"], "#1e1e1e");
@@ -569,7 +617,44 @@ test("surprise palette returns valid distinct colors and relationship metadata",
   }
 });
 
-test("applying colors only updates extension state and workbench color customizations by default", async () => {
+test("surprise palette favors distinctive combinations eighty percent of the time", () => {
+  const originalRandom = Math.random;
+  let callIndex = 0;
+
+  Math.random = () => {
+    const callInPalette = callIndex % 8;
+    const paletteIndex = Math.floor(callIndex / 8);
+    callIndex += 1;
+
+    if (callInPalette === 0) {
+      return paletteIndex < 80 ? 0.2 : 0.95;
+    }
+
+    return 0.5;
+  };
+
+  try {
+    let complementaryCount = 0;
+    let analogousCount = 0;
+
+    for (let index = 0; index < 100; index += 1) {
+      const palette = testApi.createSurprisePalette();
+      if (palette.relationship === "complementary") {
+        complementaryCount += 1;
+      } else if (palette.relationship === "analogous") {
+        analogousCount += 1;
+      }
+    }
+
+    assert.equal(complementaryCount, 80);
+    assert.equal(analogousCount, 20);
+    assert.equal(callIndex, 800);
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
+test("applying colors saves the workspace profile and workbench colors", async () => {
   resetState();
   const context = {
     subscriptions: [],
@@ -590,9 +675,45 @@ test("applying colors only updates extension state and workbench color customiza
   const updatedColors = configValues.get("workbench.colorCustomizations");
   assert.equal(updatedColors["editorRuler.foreground"], "#123456");
   assert.equal(updatedColors["titleBar.activeBackground"], "#336699");
-  assert.equal(configValues.has("camaleone.startColor"), false);
-  assert.equal(Object.keys(context.globalState.dump()).length > 0, true);
-  assert.ok(updates.every((entry) => entry.key === "workbench.colorCustomizations"));
+  assert.equal(configValues.get("camaleone.startColor"), "#112233");
+  assert.equal(configValues.get("camaleone.endColor"), "#445566");
+  assert.equal(configValues.get("camaleone.intensity"), 100);
+  assert.equal(configValues.get("camaleone.sober"), false);
+  assert.equal(context.workspaceState.get("camaleone.lastChoices").startColor, "#112233");
+  assert.equal(context.globalState.get("camaleone.lastChoices"), undefined);
+  assert.ok(updates.some((entry) => entry.key === "camaleone.startColor" && entry.target === vscodeMock.ConfigurationTarget.Workspace));
+  assert.deepEqual(updates.at(-1), {
+    key: "workbench.colorCustomizations",
+    value: updatedColors,
+    target: vscodeMock.ConfigurationTarget.Workspace
+  });
+});
+
+test("activation reapplies an active saved workspace profile", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento(),
+    workspaceState: createMemento({
+      "camaleone.workspace.active": true,
+      "camaleone.lastChoices": {
+        ...testApi.DEFAULT_CHOICES,
+        startColor: "#112233",
+        endColor: "#445566",
+        sober: false,
+        surfaceOverrides: { titleBar: "#336699" }
+      }
+    })
+  };
+
+  const replayed = await testApi.applySavedWorkspaceProfileOnActivation(context);
+  const colors = configValues.get("workbench.colorCustomizations");
+
+  assert.equal(replayed, true);
+  assert.equal(colors["titleBar.activeBackground"], "#336699");
+  assert.equal(colors["statusBar.background"], "#445566");
+  assert.equal(configValues.get("camaleone.startColor"), "#112233");
+  assert.equal(context.workspaceState.get("camaleone.workspace.active"), true);
 });
 
 test("applying colors replaces stale managed workspace settings", async () => {
@@ -650,7 +771,6 @@ test("favourite commands save and apply stored color profiles", async () => {
   configValues.set("camaleone.startColor", "#112233");
   configValues.set("camaleone.endColor", "#445566");
   configValues.set("camaleone.intensity", 100);
-  configValues.set("camaleone.applyTo", "workspace");
   configValues.set("camaleone.sober", false);
   configValues.set("camaleone.surfaceOverrides", {
     titleBar: "#336699",
@@ -685,7 +805,7 @@ test("favourite commands save and apply stored color profiles", async () => {
   assert.equal(appliedColors["titleBar.activeBackground"], "#336699");
   assert.equal(appliedColors["button.background"], "#010203");
   assert.equal(appliedColors["statusBar.background"], "#445566");
-  assert.equal(context.globalState.get("camaleone.lastChoices").startColor, "#112233");
+  assert.equal(context.workspaceState.get("camaleone.lastChoices").startColor, "#112233");
   assert.equal(quickPickRequests[0].items[0].label, "Critical Favourite");
   assert.ok(informationMessages.some((message) => message.includes("Camaleone applied #112233 to #445566")));
 });
@@ -913,14 +1033,15 @@ test("reset to IDE defaults removes empty color customizations setting", async (
   });
 
   assert.equal(configValues.has("workbench.colorCustomizations"), false);
-  assert.deepEqual(updates.at(-1), {
+  const workbenchUpdate = updates.find((entry) => entry.key === "workbench.colorCustomizations");
+  assert.deepEqual(workbenchUpdate, {
     key: "workbench.colorCustomizations",
     value: undefined,
     target: vscodeMock.ConfigurationTarget.Workspace
   });
 });
 
-test("reset IDE defaults clears Camaleone colors from workspace and global scopes", async () => {
+test("reset IDE defaults clears Camaleone colors from workspace scope", async () => {
   resetState();
   const context = {
     subscriptions: [],
@@ -938,10 +1059,9 @@ test("reset IDE defaults clears Camaleone colors from workspace and global scope
     .map((entry) => entry.target);
 
   assert.deepEqual(targets, [
-    vscodeMock.ConfigurationTarget.Workspace,
-    vscodeMock.ConfigurationTarget.Global
+    vscodeMock.ConfigurationTarget.Workspace
   ]);
-  assert.equal(context.globalState.get("camaleone.global.active", true), false);
+  assert.equal(context.globalState.get("camaleone.global.active", true), true);
   assert.equal(context.workspaceState.get("camaleone.workspace.active", true), false);
 });
 
@@ -955,7 +1075,9 @@ test("picker html contains the simplified workflow controls", () => {
     hasWorkspace: true,
     pickerIcons: {
       title: "vscode-webview://icons/camaleone-sil-2.png",
-      saveFavorite: "vscode-webview://icons/camaleone-sil-3.png"
+      saveFavorite: "vscode-webview://icons/camaleone-sil-3.png",
+      colorPicker: "vscode-webview://icons/color-picker.png",
+      undo: "vscode-webview://icons/undo.png"
     }
   });
 
@@ -968,7 +1090,6 @@ test("picker html contains the simplified workflow controls", () => {
     "Save as favourite",
     "Options",
     "Color behavior",
-    "Target",
     "Presets",
     "Actions",
     "Monochromatic",
@@ -991,12 +1112,31 @@ test("picker html contains the simplified workflow controls", () => {
   assert.equal(html.includes("<h2>Palette</h2>"), false);
   assert.equal(html.includes('textContent = "Custom"'), false);
   assert.equal(html.includes("Panel harmony"), false);
+  assert.equal(html.includes("<div class=\"options-section-title\">Target</div>"), false);
+  assert.equal(html.includes('id="applyTo"'), false);
+  assert.equal(html.includes("Global settings"), false);
   assert.equal(html.includes(">Save favourite<"), false);
   assert.ok(html.includes("panel-grid"));
   assert.ok(html.includes("button-icon"));
+  assert.ok(html.includes("button-icon icon-svg icon-reset"));
+  assert.ok(html.includes("button-icon icon-image-mask icon-revert"));
+  assert.ok(html.includes("--icon-mask: url('vscode-webview://icons/undo.png');"));
+  assert.ok(html.includes(".button-icon.icon-image-mask"));
+  assert.ok(html.includes("-webkit-mask: var(--icon-mask) center / contain no-repeat;"));
+  assert.ok(html.includes("mask: var(--icon-mask) center / contain no-repeat;"));
+  assert.ok(html.includes('id="clear" class="secondary" type="button"><span class="button-icon icon-image-mask icon-revert"'));
+  assert.ok(html.includes('id="resetDefault" class="secondary" type="button"><svg class="button-icon icon-svg icon-reset"'));
+  assert.ok(html.includes('resetButton.innerHTML = "<span class=\\"button-icon icon-image-mask icon-revert\\"'));
+  assert.ok(html.includes(".button-icon.icon-svg"));
+  assert.equal(html.includes("&#8630;"), false);
+  assert.equal(html.includes("&#8634;"), false);
+  assert.equal(html.includes("&#8635;"), false);
   assert.ok(html.includes("--vscode-button-secondaryForeground"));
   assert.ok(html.includes("--vscode-sideBar-foreground"));
   assert.ok(html.includes("primary-action"));
+  assert.ok(html.includes("button.primary-action,\n    button.secondary"));
+  assert.ok(html.includes("button.primary-action:hover,\n    button.secondary:hover"));
+  assert.equal(html.includes("color-mix(in srgb, var(--vscode-button-background)"), false);
   assert.ok(html.includes("primary-apply-row"));
   assert.ok(html.includes("colors-divider"));
   assert.ok(html.includes("colors-secondary-row"));
@@ -1036,6 +1176,18 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("camaleone-sil-2.png"));
   assert.ok(html.includes("save-favorite-icon"));
   assert.ok(html.includes("camaleone-sil-3.png"));
+  assert.ok(html.includes("color-picker.png"));
+  assert.ok(html.includes("undo.png"));
+  assert.ok(html.includes("const colorPickerIconSrc = state.pickerIcons && state.pickerIcons.colorPicker"));
+  assert.ok(html.includes("const surpriseDistinctProbability = 0.8;"));
+  assert.ok(html.includes("const surpriseDistinctHueMin = 135;"));
+  assert.ok(html.includes("const surpriseSimilarHueMax = 42;"));
+  assert.ok(html.includes("function createSurpriseEndHsl(startHsl, distinctive)"));
+  assert.ok(html.includes("Generated a distinctive color pair."));
+  assert.ok(html.includes("surface-picker-icon-image"));
+  assert.ok(html.includes("filter: var(--surface-picker-filter, brightness(0));"));
+  assert.ok(html.includes('element.style.setProperty("--surface-picker-filter", useLightInk ? "brightness(0) invert(1)" : "brightness(0)");'));
+  assert.ok(html.includes('pickerIcon.src = colorPickerIconSrc;'));
   assert.ok(html.includes('id="saveFavorite" class="secondary"'));
   assert.ok(html.includes("align-items: stretch;"));
   assert.ok(html.includes("grid-template-rows: 46px 1fr;"));
@@ -1061,12 +1213,13 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("let applyTimer;"));
   assert.ok(html.includes('elements.intensity.addEventListener("input", () => updatePreviewAndApply(60));'));
   assert.ok(html.includes('elements.intensity.addEventListener("change", () => updatePreviewAndApply(0));'));
-  assert.ok(html.includes('elements.applyTo.addEventListener("change", () => updatePreviewAndApply(0));'));
+  assert.equal(html.includes("elements.applyTo"), false);
   assert.ok(html.includes('elements.includeEditorAccent.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.sober.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('elements.panelHarmony.addEventListener("change", () => updatePreviewAndApply(0));'));
   assert.ok(html.includes('updatePreviewAndApply(0);'));
-  assert.ok(html.includes('vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id, applyTo: target });'));
+  assert.ok(html.includes('applyTo: "workspace"'));
+  assert.ok(html.includes('vscode.postMessage({ type: "applyFavorite", favoriteId: favorite.id });'));
   assert.equal(html.includes("Click Apply colors to write it."), false);
   assert.ok(html.includes("function scheduleApply(delay)"));
   assert.equal(html.includes("syncEndFromRelationship"), false);
@@ -1100,28 +1253,134 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.indexOf('id="surpriseNote"') > colorsIndex && html.indexOf('id="surpriseNote"') < paletteIndex);
 });
 
+test("activity bar picker keeps surface customization in the first preview cards", () => {
+  const baseState = {
+    ...testApi.DEFAULT_CHOICES,
+    favorites: [],
+    surfaces: testApi.SURFACE_CONFIGS,
+    defaultChoices: testApi.DEFAULT_CHOICES,
+    baseColor: "#1e1e1e",
+    hasWorkspace: true,
+    pickerIcons: {
+      colorPicker: "vscode-webview://icons/color-picker.png",
+      undo: "vscode-webview://icons/undo.png"
+    }
+  };
+  const standardHtml = testApi.getPickerHtml({ cspSource: "vscode-webview:" }, baseState);
+  const activityHtml = testApi.getPickerHtml({ cspSource: "vscode-webview:" }, {
+    ...baseState,
+    layout: "activityBar"
+  });
+
+  assert.ok(standardHtml.includes('<body class="standard-pane">'));
+  assert.ok(standardHtml.includes('<section class="customize" aria-label="Customize colors">'));
+  assert.ok(activityHtml.includes('<body class="activity-pane">'));
+  assert.equal(activityHtml.includes('<section class="customize" aria-label="Customize colors">'), false);
+  assert.ok(activityHtml.includes("surface-control-inline"));
+  assert.ok(activityHtml.includes("surface-inline-head"));
+  assert.ok(activityHtml.includes("surface-inline-actions"));
+  assert.ok(activityHtml.includes("field-label surface-color-title"));
+  assert.ok(activityHtml.includes("body.activity-pane .preview"));
+  assert.ok(activityHtml.includes("grid-template-columns: repeat(2, minmax(0, 1fr));"));
+  assert.ok(activityHtml.includes("grid-auto-rows: 78px;"));
+  assert.ok(activityHtml.includes("gap: 1px;"));
+  assert.ok(activityHtml.includes("column-gap: 1px;"));
+  assert.ok(activityHtml.includes("row-gap: 3px;"));
+  assert.ok(activityHtml.includes("align-items: stretch;"));
+  assert.ok(activityHtml.includes("grid-template-rows: minmax(0, 1fr) auto;"));
+  assert.ok(activityHtml.includes("grid-template-rows: 18px 22px;"));
+  assert.ok(activityHtml.includes("grid-template-columns: minmax(0, 1fr) 22px;"));
+  assert.ok(activityHtml.includes("background: rgba(127, 127, 127, 0.16);"));
+  assert.ok(activityHtml.includes("background: rgba(127, 127, 127, 0.14);"));
+  assert.ok(activityHtml.includes("height: 46px;"));
+  assert.ok(activityHtml.includes("height: 100%;"));
+  assert.ok(activityHtml.includes("height: 22px;"));
+  assert.ok(activityHtml.includes("min-height: 0;"));
+  assert.ok(activityHtml.includes("width: 14px;"));
+  assert.ok(activityHtml.includes("font-size: 9.5px;"));
+  assert.ok(activityHtml.includes("min-height: 12px;"));
+  assert.ok(activityHtml.includes("text-overflow: ellipsis;"));
+  assert.ok(activityHtml.includes("white-space: nowrap;"));
+  assert.ok(activityHtml.includes("overflow: hidden;"));
+  assert.ok(activityHtml.includes("@media (max-width: 320px)"));
+  assert.ok(activityHtml.includes("surface-color-button"));
+  assert.ok(activityHtml.includes("surface-picker-icon"));
+  assert.ok(activityHtml.includes("surface-picker-icon-image"));
+  assert.ok(activityHtml.includes("color-picker.png"));
+  assert.ok(activityHtml.includes("undo.png"));
+  assert.ok(activityHtml.includes("brightness(0) invert(1)"));
+  assert.ok(activityHtml.includes("brightness(0)"));
+  assert.ok(activityHtml.includes("surface-native-color"));
+  assert.ok(activityHtml.includes("surface-hidden-text"));
+  assert.ok(activityHtml.includes("surface-preview-generated"));
+  assert.ok(activityHtml.includes("setActivityPaneActionContrast"));
+  assert.ok(activityHtml.includes("--surface-action-foreground"));
+  assert.ok(activityHtml.includes("--surface-action-border"));
+  assert.ok(activityHtml.includes("rgba(255, 255, 255, 0.62)"));
+  assert.ok(activityHtml.includes("rgba(0, 0, 0, 0.48)"));
+  assert.ok(activityHtml.includes("border-color: transparent;"));
+  assert.ok(activityHtml.includes("opacity: 0.18;"));
+  assert.ok(activityHtml.includes("opacity: 0.92;"));
+  assert.ok(activityHtml.includes("surface-reset-icon"));
+  assert.ok(activityHtml.includes("resetButton.classList.add(\"surface-reset-icon\");"));
+  assert.ok(activityHtml.includes("actions.append(pickerButton, resetButton);"));
+  assert.ok(activityHtml.includes("color.click();"));
+  assert.ok(activityHtml.indexOf("inlineHead.append(label);") < activityHtml.indexOf("actions.append(pickerButton, resetButton);"));
+  assert.equal(activityHtml.includes("surface-color-label"), false);
+  const resetRuleStart = activityHtml.indexOf("body.activity-pane .surface-reset {");
+  const resetRuleEnd = activityHtml.indexOf("body.activity-pane .surface-reset:hover {");
+  const resetRule = activityHtml.slice(resetRuleStart, resetRuleEnd);
+  assert.ok(resetRuleStart >= 0 && resetRuleEnd > resetRuleStart);
+  assert.equal(resetRule.includes("position: absolute"), false);
+  assert.equal(resetRule.includes("top: 8px"), false);
+  assert.equal(resetRule.includes("right: 8px"), false);
+  assert.ok(activityHtml.includes('const isActivityPane = state && state.layout === "activityBar";'));
+  assert.ok(activityHtml.indexOf('<div class="gradient-strip"></div>') < activityHtml.indexOf('<div id="surfacePreview" class="surface-grid"></div>'));
+  assert.ok(activityHtml.indexOf('<section class="preview" aria-label="Color palette preview">') < activityHtml.indexOf('<div class="options-stack">'));
+  assert.ok(standardHtml.indexOf('<section class="customize" aria-label="Customize colors">') < standardHtml.indexOf('<div class="options-stack">'));
+});
+
 test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
+  assert.equal(manifest.version, "0.1.9");
   assert.equal(manifest.publisher, "trentinium");
   assert.equal(manifest.icon, "assets/icons/ico/camaleone_transparent.ico");
   assert.equal(manifest.repository.url, "https://github.com/btrentini/camaleone.git");
-  assert.ok(manifest.description.includes("sober mode"));
-  assert.ok(manifest.description.includes("favourites"));
+  assert.equal(manifest.homepage, "https://www.trentini.fyi/camaleone/");
+  assert.equal(manifest.description.length, 94);
+  assert.deepEqual(manifest.activationEvents, [
+    "onStartupFinished",
+    "onView:camaleone.controls"
+  ]);
+  assert.ok(manifest.description.includes("VS Code Marketplace"));
+  assert.ok(manifest.description.includes("Open VSX"));
+  assert.ok(manifest.description.includes("Cursor"));
+  assert.ok(manifest.description.includes("compatible IDE"));
+  assert.ok(manifest.categories.includes("Themes"));
+  assert.ok(manifest.categories.includes("Visualization"));
+  assert.ok(manifest.keywords.includes("sober-mode"));
+  assert.ok(manifest.keywords.includes("visual-controls"));
+  assert.ok(manifest.keywords.includes("remote-ssh"));
   assert.equal(manifest.contributes.configuration.properties["camaleone.sober"].default, true);
+  assert.equal(manifest.contributes.configuration.properties["camaleone.applyTo"], undefined);
+  assert.equal(manifest.contributes.configuration.properties["camaleone.persistChoices"], undefined);
   assert.deepEqual(manifest.contributes.viewsContainers.activitybar[0], {
     id: "camaleone",
     title: "Camaleone",
-    icon: "assets/icons/ico/camaleone-bar-0.ico"
+    icon: "assets/icons/png/camaleone-activity.png"
   });
   assert.equal(manifest.contributes.views.camaleone[0].id, "camaleone.controls");
   assert.equal(manifest.contributes.views.camaleone[0].name, "Setup");
-  assert.equal(manifest.contributes.views.camaleone[0].icon, "assets/icons/ico/camaleone-bar-1.ico");
-  assert.ok(manifest.contributes.viewsWelcome[0].contents.includes("command:camaleone.openPicker"));
-  assert.ok(manifest.contributes.viewsWelcome[0].contents.includes("Open Camaleone Setup"));
+  assert.equal(manifest.contributes.views.camaleone[0].type, "webview");
+  assert.equal(manifest.contributes.views.camaleone[0].icon, "assets/icons/ico/camaleone-activity-compact.ico");
+  assert.equal(manifest.contributes.views.camaleone[0].visibility, "visible");
+  assert.equal(manifest.contributes.views.camaleone[0].when, undefined);
+  assert.equal(manifest.contributes.viewsWelcome, undefined);
 
   const openPickerCommand = manifest.contributes.commands.find((entry) => entry.command === "camaleone.openPicker");
-  assert.equal(openPickerCommand.icon.light, "assets/icons/ico/camaleone-bar-0.ico");
-  assert.equal(openPickerCommand.icon.dark, "assets/icons/ico/camaleone-bar-1.ico");
+  assert.equal(openPickerCommand.icon.light, "assets/icons/ico/camaleone-activity-compact-light.ico");
+  assert.equal(openPickerCommand.icon.dark, "assets/icons/ico/camaleone-activity-compact-dark.ico");
+  assert.equal(JSON.stringify(manifest).includes(".svg"), false);
 
   for (const relativePath of [
     "assets/icons/store/camaleone.png",
@@ -1139,9 +1398,17 @@ test("manifest and generated icon assets use the organized paths", () => {
     "assets/icons/ico/camaleone-sil-3.ico",
     "assets/icons/ico/camaleone-bar-0.ico",
     "assets/icons/ico/camaleone-bar-1.ico",
-    "assets/icons/svg/camaleone-activity.svg",
-    "assets/icons/svg/camaleone-activity-dark.svg",
-    "assets/icons/svg/camaleone-activity-light.svg",
+    "assets/icons/ico/camaleone-activity.ico",
+    "assets/icons/ico/camaleone-activity-dark.ico",
+    "assets/icons/ico/camaleone-activity-light.ico",
+    "assets/icons/ico/camaleone-activity-compact.ico",
+    "assets/icons/ico/camaleone-activity-compact-dark.ico",
+    "assets/icons/ico/camaleone-activity-compact-light.ico",
+    "assets/icons/png/camaleone-activity.png",
+    "assets/icons/png/camaleone-activity-dark.png",
+    "assets/icons/png/camaleone-activity-light.png",
+    "assets/icons/png/color-picker.png",
+    "assets/icons/png/undo.png",
     "assets/screenshots/marketplace/camaleone-0.png",
     "assets/screenshots/marketplace/camaleone-1.png",
     "assets/screenshots/marketplace/camaleone-2.png",
@@ -1156,16 +1423,34 @@ test("manifest and generated icon assets use the organized paths", () => {
     assert.equal(fs.existsSync(path.join(repoRoot, relativePath)), true, `${relativePath} should exist`);
   }
 
-  assert.ok(textFile("assets/icons/svg/camaleone-activity.svg").includes('stroke="currentColor"'));
-  assert.ok(textFile("assets/icons/svg/camaleone-activity-dark.svg").includes('stroke="#111111"'));
-  assert.ok(textFile("assets/icons/svg/camaleone-activity-light.svg").includes('stroke="#ffffff"'));
+  for (const relativePath of [
+    "assets/icons/ico/camaleone-activity.ico",
+    "assets/icons/ico/camaleone-activity-dark.ico",
+    "assets/icons/ico/camaleone-activity-light.ico",
+    "assets/icons/ico/camaleone-activity-compact.ico",
+    "assets/icons/ico/camaleone-activity-compact-dark.ico",
+    "assets/icons/ico/camaleone-activity-compact-light.ico"
+  ]) {
+    const header = binaryFile(relativePath).subarray(0, 4);
+    assert.deepEqual([...header], [0, 0, 1, 0], `${relativePath} should be an ICO file`);
+  }
+  for (const relativePath of [
+    "assets/icons/png/camaleone-activity.png",
+    "assets/icons/png/camaleone-activity-dark.png",
+    "assets/icons/png/camaleone-activity-light.png",
+    "assets/icons/png/color-picker.png",
+    "assets/icons/png/undo.png"
+  ]) {
+    const png = binaryFile(relativePath);
+    assert.equal(png[25], 6, `${relativePath} should be an RGBA PNG with transparency`);
+  }
 
   const readme = textFile("README.md");
   const websiteScreenshotBase = "https://trentini.fyi/camaleone/assets/screenshots/marketplace";
   const websiteScreenshots = [
     "camaleone-feature-flow.gif",
+    "camaleone-v04-6.png",
     "camaleone-v04-1.png",
-    "camaleone-v04-2.png",
     "camaleone-v04-3.png",
     "camaleone-v04-4.png",
     "camaleone-v04-5.png"
@@ -1173,6 +1458,7 @@ test("manifest and generated icon assets use the organized paths", () => {
   assert.ok(readme.includes("## Screenshots"));
   assert.ok(readme.indexOf("## Screenshots") < readme.indexOf("## How To Use"));
   assert.ok(readme.includes("<td colspan=\"4\">"));
+  assert.ok(readme.includes("Camaleone Activity Bar side pane open beside an active editor workspace"));
   assert.ok(readme.includes("https://trentini.fyi/camaleone/"));
   for (const filename of websiteScreenshots) {
     assert.ok(readme.includes(`${websiteScreenshotBase}/${filename}`));
@@ -1190,10 +1476,21 @@ test("save favourite placeholder uses a non-personal example name", () => {
 test("README includes marketplace how-to-use instructions", () => {
   const readme = textFile("README.md");
   assert.ok(readme.includes("## How To Use"));
-  assert.ok(readme.includes("Install Camaleone in VS Code or Cursor."));
-  assert.ok(readme.includes("Run `Camaleone: Open Colour Picker`."));
-  assert.ok(readme.includes("This is the main command, and it opens the Camaleone customization interface."));
-  assert.ok(readme.includes("Click `Apply colors` to write the current palette."));
+  assert.ok(readme.includes("Install Camaleone from the VS Code Marketplace or Open VSX"));
+  assert.ok(readme.includes("VS Code, Cursor, or a compatible VS Code-based IDE"));
+  assert.ok(readme.includes("Fast Activity Bar side-panel flow:"));
+  assert.ok(readme.includes("Full picker flow:"));
+  assert.ok(readme.includes("Click the Camaleone icon in the Activity Bar"));
+  assert.ok(readme.includes("usually located on the left side bar"));
+  assert.ok(readme.includes("Run `Camaleone: Open Colour Picker`"));
+  assert.ok(readme.includes("for the full picker pane"));
+  assert.ok(readme.includes("Use the compact two-column tiles"));
+  assert.ok(readme.includes("Click the small revert icon on a tile"));
+  assert.ok(readme.includes("favors distinctive color pairs"));
+  assert.ok(readme.includes("remote host, buttons, and editor accents"));
+  assert.ok(readme.includes("Click `Apply colors` to write the current palette to workspace settings."));
+  assert.ok(readme.includes("saves the workspace profile automatically"));
+  assert.equal(readme.includes("Global settings"), false);
   assert.ok(readme.includes("Click `Save as favourite...` to store a palette"));
   assert.ok(readme.includes("choose it from the favourites list to apply it later"));
   assert.ok(readme.includes("Use `Restore previous`"));
@@ -1215,13 +1512,17 @@ test("command titles rely on category for the Camaleone prefix", () => {
 
 test("README includes official overview, info links, and feature copy", () => {
   const readme = textFile("README.md");
-  assert.ok(readme.includes("Camaleone gives each IDE workspace more personality with gradient-inspired treatment, high customization, and presets."));
+  assert.ok(readme.includes("Camaleone is a VS Code Marketplace and Open VSX extension"));
+  assert.ok(readme.includes("VS Code, Cursor, and compatible VS Code-based IDE workspaces"));
+  assert.ok(readme.includes("the VSIX package works in VS Code, Cursor, and compatible VS Code-based IDEs"));
   assert.ok(readme.includes("Users of this extension have a big deal of freedom!"));
   assert.ok(readme.includes("## More info"));
   assert.ok(readme.includes("## Overview"));
   assert.ok(readme.includes("distinct identity"));
   assert.ok(readme.includes("default `Sober` mode"));
   assert.ok(readme.includes("customize individual surfaces"));
+  assert.ok(readme.includes("Activity Bar side pane, visible by default"));
+  assert.ok(readme.includes("Automatic workspace profile saving"));
   assert.ok(readme.includes("Save favourite palettes"));
   assert.ok(readme.includes("README media is intentionally loaded from the live website"));
   assert.ok(readme.includes("## Feature Highlights"));
@@ -1270,6 +1571,7 @@ test("debug configuration isolates the extension without suppressing warnings", 
   const launch = JSON.parse(textFile(".vscode/launch.json"));
   const args = launch.configurations[0].args;
 
+  assert.ok(args.includes("--new-window"));
   assert.ok(args.includes("--user-data-dir=${workspaceFolder}/.vscode-test/user-data"));
   assert.ok(args.includes("--extensions-dir=${workspaceFolder}/.vscode-test/extensions"));
   assert.ok(args.includes("--extensionDevelopmentPath=${workspaceFolder}"));
