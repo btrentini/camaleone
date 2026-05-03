@@ -1053,7 +1053,6 @@ test("README includes marketplace project description and feature copy", () => {
   assert.ok(readme.includes("## What Users Say"));
   assert.ok(readme.includes("> \"Loving it! Installed and in use!!\""));
   assert.ok(readme.includes("> \"easy to use. great interface\""));
-  assert.ok(readme.includes("> \"Way Better than Peacock!\""));
   assert.ok(readme.includes("> \"It's just beautiful\""));
   assert.ok(readme.includes("Main command:"));
   assert.ok(readme.includes("Secondary commands:"));

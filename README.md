@@ -36,8 +36,6 @@ It is built for people who work across many projects and want a fast visual cue 
 >
 > "easy to use. great interface"
 >
-> "Way Better than Peacock!"
->
 > "It's just beautiful"
 
 ## Marketplace Screenshots

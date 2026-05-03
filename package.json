@@ -1,7 +1,7 @@
 {
   "name": "camaleone",
   "displayName": "Camaleone",
-  "description": "Color for IDE windows. Better than Peacock: gradients, sober mode, presets, favourites, per-surface controls, and restore.",
+  "description": "Color for IDE windows: gradients, sober mode, presets, favourites, per-surface controls, and restore.",
   "version": "0.1.4",
   "publisher": "trentinium",
   "license": "MIT",
