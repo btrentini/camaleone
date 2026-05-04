@@ -1389,9 +1389,11 @@ test("manifest and generated icon assets use the organized paths", () => {
   assert.ok(manifest.description.includes("compatible IDE"));
   assert.ok(manifest.categories.includes("Themes"));
   assert.ok(manifest.categories.includes("Visualization"));
-  assert.ok(manifest.keywords.includes("sober-mode"));
-  assert.ok(manifest.keywords.includes("visual-controls"));
-  assert.ok(manifest.keywords.includes("remote-ssh"));
+  assert.equal(manifest.keywords.length, 30);
+  assert.ok(manifest.keywords.every((keyword) => !keyword.includes("-")));
+  assert.ok(manifest.keywords.includes("palette"));
+  assert.ok(manifest.keywords.includes("activitybar"));
+  assert.ok(manifest.keywords.includes("ssh"));
   assert.equal(manifest.contributes.configuration.properties["camaleone.sober"].default, true);
   assert.equal(manifest.contributes.configuration.properties["camaleone.applyTo"], undefined);
   assert.equal(manifest.contributes.configuration.properties["camaleone.persistChoices"], undefined);
