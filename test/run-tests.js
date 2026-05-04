@@ -810,7 +810,7 @@ test("favourite commands save and apply stored color profiles", async () => {
   assert.ok(informationMessages.some((message) => message.includes("Camaleone applied #112233 to #445566")));
 });
 
-test("default favourites include Magnificent 7 and QS top university palettes", async () => {
+test("default favourites include grouped Magnificent 7, QS, and World Cup palettes", async () => {
   resetState();
   const context = {
     subscriptions: [],
@@ -819,8 +819,11 @@ test("default favourites include Magnificent 7 and QS top university palettes", 
   };
 
   const favorites = testApi.getFavorites(context);
-  assert.equal(favorites.length, 17);
+  assert.equal(favorites.length, 32);
   assert.equal(favorites.every((favorite) => favorite.builtin), true);
+  assert.equal(favorites.filter((favorite) => favorite.presetGroup === "magnificent-7").length, 7);
+  assert.equal(favorites.filter((favorite) => favorite.presetGroup === "qs-world-top-10").length, 10);
+  assert.equal(favorites.filter((favorite) => favorite.presetGroup === "world-cup").length, 15);
 
   const names = favorites.map((favorite) => favorite.name);
   for (const name of [
@@ -840,16 +843,34 @@ test("default favourites include Magnificent 7 and QS top university palettes", 
     "ETH Zurich",
     "National University of Singapore (NUS)",
     "UCL",
-    "California Institute of Technology (Caltech)"
+    "California Institute of Technology (Caltech)",
+    "France",
+    "Spain",
+    "Argentina",
+    "England",
+    "Portugal",
+    "Brazil",
+    "Netherlands",
+    "Morocco",
+    "Belgium",
+    "Germany",
+    "Croatia",
+    "Italy",
+    "Colombia",
+    "Senegal",
+    "Mexico"
   ]) {
     assert.ok(names.includes(name), `${name} should be a default favourite`);
   }
 
   const nvidia = favorites.find((favorite) => favorite.name === "NVIDIA");
   const stanford = favorites.find((favorite) => favorite.name === "Stanford University");
+  const france = favorites.find((favorite) => favorite.name === "France");
   assert.equal(nvidia.startColor, "#76b900");
   assert.equal(stanford.startColor, "#8c1515");
   assert.equal(stanford.endColor, "#dad7cb");
+  assert.equal(france.startColor, "#002654");
+  assert.equal(france.endColor, "#ed2939");
 
   const result = await testApi.applyFavoriteById(context, nvidia.id);
   const colors = configValues.get("workbench.colorCustomizations");
@@ -879,8 +900,9 @@ test("saved favourites override default favourites by name", async () => {
   assert.equal(nvidiaEntries.length, 1);
   assert.equal(nvidiaEntries[0].id, "custom-nvidia");
   assert.equal(nvidiaEntries[0].builtin, false);
+  assert.equal(nvidiaEntries[0].presetGroup, "magnificent-7");
   assert.equal(nvidiaEntries[0].startColor, "#123456");
-  assert.equal(favorites.length, 17);
+  assert.equal(favorites.length, 32);
 });
 
 test("preloaded favourites can be edited by saving over their preset name", async () => {
@@ -912,7 +934,7 @@ test("preloaded favourites can be edited by saving over their preset name", asyn
   assert.equal(nvidiaEntries.length, 1);
   assert.equal(nvidiaEntries[0].builtin, false);
   assert.equal(nvidiaEntries[0].startColor, "#123456");
-  assert.equal(favorites.length, 17);
+  assert.equal(favorites.length, 32);
 });
 
 test("webview save favourite uses provided modal name without native input", async () => {
@@ -1091,6 +1113,9 @@ test("picker html contains the simplified workflow controls", () => {
     "Options",
     "Color behavior",
     "Presets",
+    "Magnificent 7",
+    "Top 10 QS World",
+    "World Cup",
     "Actions",
     "Monochromatic",
     "Colour relationship",
@@ -1116,6 +1141,9 @@ test("picker html contains the simplified workflow controls", () => {
   assert.equal(html.includes('id="applyTo"'), false);
   assert.equal(html.includes("Global settings"), false);
   assert.equal(html.includes(">Save favourite<"), false);
+  assert.ok(html.includes('data-preset-filter="magnificent-7"'));
+  assert.ok(html.includes('data-preset-filter="qs-world-top-10"'));
+  assert.ok(html.includes('data-preset-filter="world-cup"'));
   assert.ok(html.includes("panel-grid"));
   assert.ok(html.includes("button-icon"));
   assert.ok(html.includes("button-icon icon-svg icon-reset"));
@@ -1157,8 +1185,11 @@ test("picker html contains the simplified workflow controls", () => {
   assert.ok(html.includes("actions-container"));
   assert.equal(html.includes("options-actions"), false);
   assert.ok(html.includes("choose from the list..."));
+  assert.ok(html.includes("No presets in this group"));
   assert.ok(html.includes("select.placeholder"));
   assert.ok(html.includes("let selectedFavoriteName;"));
+  assert.ok(html.includes('let activePresetFilter = "all";'));
+  assert.ok(html.includes("syncPresetFilterButtons"));
   assert.ok(html.includes('id="favoriteModal"'));
   assert.ok(html.includes('role="dialog"'));
   assert.ok(html.includes('id="favoriteNameInput"'));
@@ -1342,7 +1373,7 @@ test("activity bar picker keeps surface customization in the first preview cards
 
 test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
-  assert.equal(manifest.version, "0.1.10");
+  assert.equal(manifest.version, "0.1.11");
   assert.equal(manifest.publisher, "trentinium");
   assert.equal(manifest.icon, "assets/icons/ico/camaleone_transparent.ico");
   assert.equal(manifest.repository.url, "https://github.com/btrentini/camaleone.git");
@@ -1540,7 +1571,7 @@ test("README includes official overview, info links, and feature copy", () => {
   assert.equal(readme.includes("## Customization Notes"), false);
 });
 
-test("README lists default Magnificent 7 and university favourites", () => {
+test("README lists default Magnificent 7, university, and World Cup favourites", () => {
   const readme = textFile("README.md");
   assert.ok(readme.includes("## Preloaded Favourites"));
   assert.ok(readme.includes("Magnificent 7"));
@@ -1548,6 +1579,9 @@ test("README lists default Magnificent 7 and university favourites", () => {
   assert.ok(readme.includes("QS 2026 top 10 universities"));
   assert.ok(readme.includes("Stanford University (`#8c1515` and `#dad7cb`)"));
   assert.ok(readme.includes("National University of Singapore (NUS)"));
+  assert.ok(readme.includes("top 15 FIFA men's national teams"));
+  assert.ok(readme.includes("World Cup: France (`#002654` and `#ed2939`)"));
+  assert.ok(readme.includes("Mexico"));
   assert.ok(readme.includes("To edit a preloaded favourite"));
   assert.ok(readme.includes("prefilled with the preset name"));
 });

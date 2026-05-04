@@ -40,7 +40,7 @@ If Camaleone helps your workflow, a review on the VS Code Marketplace or Open VS
 - Per-surface customization for title bar, activity bar, side bar, panel, status bar, remote host, buttons, borders, and editor accents.
 - `Surprise me` palettes biased toward distinctive color pairs instead of mostly similar colors.
 - Automatic workspace profile saving so the selected palette is ready when the workspace opens again.
-- Built-in presets for Magnificent 7 companies and QS 2026 top universities.
+- Built-in presets for Magnificent 7 companies, QS 2026 top universities, and top FIFA national teams.
 - Favourite palettes for reusable workspace identities.
 - Clean restore and reset commands for returning to previous colors or IDE defaults.
 
@@ -115,10 +115,11 @@ Full picker flow:
 
 ## Preloaded Favourites
 
-Camaleone ships with default favourites for the Magnificent 7 companies and the QS 2026 top 10 universities. These presets are brand-inspired two-color profiles, so they fit Camaleone's workbench model while keeping the names recognizable.
+Camaleone ships with default favourites for the Magnificent 7 companies, the QS 2026 top 10 universities, and the top 15 FIFA men's national teams. These presets are brand- or flag-inspired two-color profiles, so they fit Camaleone's workbench model while keeping the names recognizable.
 
 - Magnificent 7: Apple, Microsoft, Alphabet, Amazon, Meta, NVIDIA (`#76b900`), and Tesla.
 - QS 2026 top 10 universities: Massachusetts Institute of Technology (MIT), Imperial College London, Stanford University (`#8c1515` and `#dad7cb`), University of Oxford, Harvard University, University of Cambridge, ETH Zurich, National University of Singapore (NUS), UCL, and California Institute of Technology (Caltech).
+- World Cup: France (`#002654` and `#ed2939`), Spain, Argentina, England, Portugal, Brazil, Netherlands, Morocco, Belgium, Germany, Croatia, Italy, Colombia, Senegal, and Mexico.
 - To edit a preloaded favourite, choose it from the favourites list, adjust the colors or custom surfaces, then click `Save as favourite...`. The save prompt is prefilled with the preset name, and saving creates your editable override.
 
 ## Commands

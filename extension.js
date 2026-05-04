@@ -174,6 +174,19 @@ const DEFAULT_CHOICES = {
   surfaceOverrides: {}
 };
 
+const PRESET_GROUPS = {
+  MAGNIFICENT_7: "magnificent-7",
+  QS_WORLD_TOP_10: "qs-world-top-10",
+  WORLD_CUP: "world-cup"
+};
+
+const PRESET_FILTERS = [
+  { id: "all", label: "All" },
+  { id: PRESET_GROUPS.MAGNIFICENT_7, label: "Magnificent 7" },
+  { id: PRESET_GROUPS.QS_WORLD_TOP_10, label: "Top 10 QS World" },
+  { id: PRESET_GROUPS.WORLD_CUP, label: "World Cup" }
+];
+
 /**
  * Built-in editable presets exposed in the favorites list.
  */
@@ -200,7 +213,57 @@ const DEFAULT_FAVORITES = [
   defaultFavorite("qs-2026-eth-zurich", "ETH Zurich", "#215caf", "#000000"),
   defaultFavorite("qs-2026-nus", "National University of Singapore (NUS)", "#ef7c00", "#003d7c"),
   defaultFavorite("qs-2026-ucl", "UCL", "#000000", "#00a3e0"),
-  defaultFavorite("qs-2026-caltech", "California Institute of Technology (Caltech)", "#ff6c0c", "#1d1d1d")
+  defaultFavorite("qs-2026-caltech", "California Institute of Technology (Caltech)", "#ff6c0c", "#1d1d1d"),
+  defaultFavorite("world-cup-france", "France", "#002654", "#ed2939", {
+    panel: "#ffffff",
+    buttons: "#ed2939"
+  }),
+  defaultFavorite("world-cup-spain", "Spain", "#ad1519", "#fabd00"),
+  defaultFavorite("world-cup-argentina", "Argentina", "#75aadb", "#fcbf49", {
+    panel: "#ffffff",
+    buttons: "#843511"
+  }),
+  defaultFavorite("world-cup-england", "England", "#c8102e", "#ffffff"),
+  defaultFavorite("world-cup-portugal", "Portugal", "#046a38", "#da291c", {
+    panel: "#ffe900",
+    buttons: "#002d72"
+  }),
+  defaultFavorite("world-cup-brazil", "Brazil", "#009c3b", "#ffdf00", {
+    panel: "#002776",
+    buttons: "#ffffff"
+  }),
+  defaultFavorite("world-cup-netherlands", "Netherlands", "#ae1c28", "#21468b", {
+    panel: "#ffffff"
+  }),
+  defaultFavorite("world-cup-morocco", "Morocco", "#c1272d", "#006233"),
+  defaultFavorite("world-cup-belgium", "Belgium", "#000000", "#fdda24", {
+    panel: "#ef3340",
+    buttons: "#fdda24"
+  }),
+  defaultFavorite("world-cup-germany", "Germany", "#000000", "#c1121c", {
+    panel: "#ff9b00",
+    buttons: "#c1121c"
+  }),
+  defaultFavorite("world-cup-croatia", "Croatia", "#f00000", "#171796", {
+    panel: "#ffffff",
+    buttons: "#0093dd"
+  }),
+  defaultFavorite("world-cup-italy", "Italy", "#008c45", "#cd212a", {
+    panel: "#f4f5f0",
+    buttons: "#cd212a"
+  }),
+  defaultFavorite("world-cup-colombia", "Colombia", "#fcd116", "#003893", {
+    panel: "#ce1126",
+    buttons: "#003893"
+  }),
+  defaultFavorite("world-cup-senegal", "Senegal", "#00853f", "#fdef42", {
+    panel: "#e31b23",
+    buttons: "#00853f"
+  }),
+  defaultFavorite("world-cup-mexico", "Mexico", "#006847", "#ce1126", {
+    panel: "#ffffff",
+    buttons: "#ce1126"
+  })
 ];
 
 let pickerPanel;
@@ -220,8 +283,22 @@ function defaultFavorite(id, name, startColor, endColor, surfaceOverrides = {}) 
     sober: false,
     colorRelationship: "manual",
     panelHarmony: "manual",
+    presetGroup: presetGroupForFavoriteId(id),
     surfaceOverrides
   };
+}
+
+function presetGroupForFavoriteId(id) {
+  if (id.startsWith(`${PRESET_GROUPS.MAGNIFICENT_7}-`)) {
+    return PRESET_GROUPS.MAGNIFICENT_7;
+  }
+  if (id.startsWith("qs-2026-")) {
+    return PRESET_GROUPS.QS_WORLD_TOP_10;
+  }
+  if (id.startsWith(`${PRESET_GROUPS.WORLD_CUP}-`)) {
+    return PRESET_GROUPS.WORLD_CUP;
+  }
+  return "";
 }
 
 /**
@@ -352,6 +429,7 @@ function createPickerInitialState(context) {
   return {
     ...choices,
     favorites: getFavorites(context),
+    presetFilters: PRESET_FILTERS,
     surfaces: SURFACE_CONFIGS,
     defaultChoices: DEFAULT_CHOICES,
     baseColor: baseColorForTheme(),
@@ -764,6 +842,10 @@ function sanitizePanelHarmony(value) {
   return DEFAULT_CHOICES.panelHarmony;
 }
 
+function sanitizePresetGroup(value) {
+  return PRESET_FILTERS.some((filter) => filter.id === value && filter.id !== "all") ? value : "";
+}
+
 /**
  * Filters per-surface overrides to known surfaces with valid hex colors.
  */
@@ -1124,7 +1206,13 @@ function getSavedFavorites(context) {
  * override built-ins by name.
  */
 function getFavorites(context) {
-  const savedFavorites = getSavedFavorites(context);
+  const defaultGroupsByName = new Map(
+    DEFAULT_FAVORITES.map((favorite) => [favorite.name.toLowerCase(), favorite.presetGroup])
+  );
+  const savedFavorites = getSavedFavorites(context).map((favorite) => ({
+    ...favorite,
+    presetGroup: favorite.presetGroup || defaultGroupsByName.get(favorite.name.toLowerCase()) || ""
+  }));
   const savedNames = new Set(savedFavorites.map((favorite) => favorite.name.toLowerCase()));
   const defaultFavorites = DEFAULT_FAVORITES
     .filter((favorite) => !savedNames.has(favorite.name.toLowerCase()))
@@ -1141,7 +1229,8 @@ function normalizeFavorite(favorite, builtin) {
     name: favorite.name,
     createdAt: favorite.createdAt || new Date().toISOString(),
     ...sanitizeChoices(favorite),
-    builtin: Boolean(builtin || favorite.builtin)
+    builtin: Boolean(builtin || favorite.builtin),
+    presetGroup: sanitizePresetGroup(favorite.presetGroup)
   };
 }
 
@@ -1907,6 +1996,14 @@ function getPickerHtml(webview, state) {
   const resetIconHtml = '<svg class="button-icon icon-svg icon-reset" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.75 2.25h3v3"></path><path d="M12.55 2.25A5.4 5.4 0 1 0 13.4 8"></path><path d="M12.75 2.25 9.3 5.7"></path></svg>';
   const surfaceRevertButtonHtml = JSON.stringify(`${revertIconHtml}<span>Revert</span>`);
   const surfaceRevertIconOnlyHtml = JSON.stringify(revertIconHtml);
+  const presetFilters = Array.isArray(state && state.presetFilters) ? state.presetFilters : PRESET_FILTERS;
+  const presetFilterButtonsHtml = presetFilters
+    .filter((filter) => filter && typeof filter.id === "string" && typeof filter.label === "string")
+    .map((filter) => {
+      const active = filter.id === "all";
+      return `<button class="preset-filter${active ? " active" : ""}" type="button" data-preset-filter="${escapeHtmlAttribute(filter.id)}" aria-pressed="${active ? "true" : "false"}">${escapeHtmlAttribute(filter.label)}</button>`;
+    })
+    .join("");
   const customizeSectionHtml = isActivityBarLayout
     ? ""
     : `
@@ -2238,6 +2335,26 @@ function getPickerHtml(webview, state) {
       grid-template-columns: 1fr auto;
       gap: 8px;
       align-items: center;
+    }
+
+    .preset-filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .preset-filter {
+      min-height: 28px;
+      padding: 3px 8px;
+      font-size: 12px;
+      line-height: 1.2;
+      white-space: normal;
+    }
+
+    .preset-filter.active {
+      border-color: var(--vscode-focusBorder);
+      color: var(--vscode-button-foreground, var(--vscode-foreground));
+      background: var(--vscode-button-background, rgba(127, 127, 127, 0.18));
     }
 
     .preview {
@@ -2859,6 +2976,9 @@ ${customizeSectionHtml}
 
             <div class="options-section">
               <div class="options-section-title">Presets</div>
+              <div class="preset-filter-row" aria-label="Preset filters">
+                ${presetFilterButtonsHtml}
+              </div>
               <div class="favorite-row">
                 <select id="favorites" aria-label="Favourite color sets"></select>
                 <button id="deleteFavorite" class="secondary" type="button"><span class="button-icon" aria-hidden="true">&#10005;</span><span>Delete</span></button>
@@ -2930,6 +3050,7 @@ ${customizeSectionHtml}
       surfaceControls: document.getElementById("surfaceControls"),
       surfacePreview: document.getElementById("surfacePreview"),
       favorites: document.getElementById("favorites"),
+      presetFilters: Array.from(document.querySelectorAll("[data-preset-filter]")),
       deleteFavorite: document.getElementById("deleteFavorite"),
       saveFavorite: document.getElementById("saveFavorite"),
       surprise: document.getElementById("surprise"),
@@ -2950,6 +3071,7 @@ ${customizeSectionHtml}
     const surfacePreviewMap = new Map();
     let favorites = Array.isArray(state.favorites) ? state.favorites : [];
     let selectedFavoriteName;
+    let activePresetFilter = "all";
     const sideBarBackgroundAlpha = ${SIDE_BAR_BACKGROUND_ALPHA};
     let applyTimer;
 
@@ -3015,6 +3137,12 @@ ${customizeSectionHtml}
         syncFavoriteActions();
         applySelectedFavorite();
       });
+      for (const button of elements.presetFilters) {
+        button.addEventListener("click", () => {
+          activePresetFilter = button.dataset.presetFilter || "all";
+          renderFavorites();
+        });
+      }
       elements.deleteFavorite.addEventListener("click", postDeleteFavorite);
 
       window.addEventListener("message", (event) => {
@@ -3934,21 +4062,25 @@ ${customizeSectionHtml}
     function renderFavorites() {
       elements.favorites.textContent = "";
       selectedFavoriteName = undefined;
+      syncPresetFilterButtons();
+      const visibleFavorites = activePresetFilter === "all"
+        ? favorites
+        : favorites.filter((favorite) => favorite.presetGroup === activePresetFilter);
       const placeholder = document.createElement("option");
       placeholder.value = "";
-      placeholder.textContent = "choose from the list...";
+      placeholder.textContent = visibleFavorites.length ? "choose from the list..." : "No presets in this group";
       placeholder.disabled = true;
       placeholder.selected = true;
       elements.favorites.append(placeholder);
 
-      if (!favorites.length) {
+      if (!visibleFavorites.length) {
         elements.favorites.classList.add("placeholder");
         elements.deleteFavorite.disabled = true;
         selectedFavoriteName = undefined;
         return;
       }
 
-      for (const favorite of favorites) {
+      for (const favorite of visibleFavorites) {
         const option = document.createElement("option");
         option.value = favorite.id;
         option.textContent = favorite.name;
@@ -3956,6 +4088,17 @@ ${customizeSectionHtml}
         elements.favorites.append(option);
       }
       syncFavoriteActions();
+    }
+
+    /**
+     * Keeps the preset filter buttons visually and semantically in sync.
+     */
+    function syncPresetFilterButtons() {
+      for (const button of elements.presetFilters) {
+        const active = button.dataset.presetFilter === activePresetFilter;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+      }
     }
 
     /**
@@ -4015,6 +4158,7 @@ module.exports = {
     DEFAULT_CHOICES,
     DEFAULT_FAVORITES,
     EXTENSION_COLOR_KEYS,
+    PRESET_FILTERS,
     SURFACE_CONFIGS,
     applyColors,
     applyFavoriteById,
