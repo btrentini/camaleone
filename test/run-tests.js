@@ -679,6 +679,7 @@ test("applying colors saves the workspace profile and workbench colors", async (
   assert.equal(configValues.get("camaleone.endColor"), "#445566");
   assert.equal(configValues.get("camaleone.intensity"), 100);
   assert.equal(configValues.get("camaleone.sober"), false);
+  assert.equal(configValues.get("camaleone.profileActive"), true);
   assert.equal(context.workspaceState.get("camaleone.lastChoices").startColor, "#112233");
   assert.equal(context.globalState.get("camaleone.lastChoices"), undefined);
   assert.ok(updates.some((entry) => entry.key === "camaleone.startColor" && entry.target === vscodeMock.ConfigurationTarget.Workspace));
@@ -714,6 +715,68 @@ test("activation reapplies an active saved workspace profile", async () => {
   assert.equal(colors["statusBar.background"], "#445566");
   assert.equal(configValues.get("camaleone.startColor"), "#112233");
   assert.equal(context.workspaceState.get("camaleone.workspace.active"), true);
+});
+
+test("activation reapplies a persisted workspace profile when memento state is missing", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento(),
+    workspaceState: createMemento()
+  };
+  configValues.set("camaleone.startColor", "#112233");
+  configValues.set("camaleone.endColor", "#445566");
+  configValues.set("camaleone.intensity", 100);
+  configValues.set("camaleone.sober", false);
+  configValues.set("camaleone.surfaceOverrides", {
+    titleBar: "#336699"
+  });
+
+  const replayed = await testApi.applySavedWorkspaceProfileOnActivation(context);
+  const colors = configValues.get("workbench.colorCustomizations");
+
+  assert.equal(replayed, true);
+  assert.equal(colors["titleBar.activeBackground"], "#336699");
+  assert.equal(colors["statusBar.background"], "#445566");
+  assert.equal(configValues.get("camaleone.profileActive"), true);
+  assert.equal(context.workspaceState.get("camaleone.workspace.active"), true);
+});
+
+test("activation keeps an explicitly disabled workspace profile inactive", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento(),
+    workspaceState: createMemento({
+      "camaleone.workspace.active": true
+    })
+  };
+  configValues.set("camaleone.startColor", "#112233");
+  configValues.set("camaleone.endColor", "#445566");
+  configValues.set("camaleone.profileActive", false);
+
+  const replayed = await testApi.applySavedWorkspaceProfileOnActivation(context);
+
+  assert.equal(replayed, false);
+  assert.equal(configValues.get("workbench.colorCustomizations"), undefined);
+});
+
+test("restore previous disables future workspace profile replay", async () => {
+  resetState();
+  const context = {
+    subscriptions: [],
+    globalState: createMemento(),
+    workspaceState: createMemento()
+  };
+  extension.activate(context);
+
+  await testApi.applyColors(context, nonSoberChoices({
+    startColor: "#112233",
+    endColor: "#445566"
+  }));
+  await commands.get("camaleone.clear")();
+
+  assert.equal(configValues.get("camaleone.profileActive"), false);
 });
 
 test("applying colors replaces stale managed workspace settings", async () => {
@@ -1046,6 +1109,7 @@ test("reset to IDE defaults removes empty color customizations setting", async (
       "activityBar.background": "#333333"
     }
   });
+  configValues.set("camaleone.profileActive", true);
 
   await testApi.resetWorkbenchDefaults(context, {
     id: "workspace",
@@ -1055,6 +1119,7 @@ test("reset to IDE defaults removes empty color customizations setting", async (
   });
 
   assert.equal(configValues.has("workbench.colorCustomizations"), false);
+  assert.equal(configValues.has("camaleone.profileActive"), false);
   const workbenchUpdate = updates.find((entry) => entry.key === "workbench.colorCustomizations");
   assert.deepEqual(workbenchUpdate, {
     key: "workbench.colorCustomizations",
@@ -1395,6 +1460,7 @@ test("manifest and generated icon assets use the organized paths", () => {
   assert.ok(manifest.keywords.includes("activitybar"));
   assert.ok(manifest.keywords.includes("ssh"));
   assert.equal(manifest.contributes.configuration.properties["camaleone.sober"].default, true);
+  assert.equal(manifest.contributes.configuration.properties["camaleone.profileActive"].default, false);
   assert.equal(manifest.contributes.configuration.properties["camaleone.applyTo"], undefined);
   assert.equal(manifest.contributes.configuration.properties["camaleone.persistChoices"], undefined);
   assert.deepEqual(manifest.contributes.viewsContainers.activitybar[0], {

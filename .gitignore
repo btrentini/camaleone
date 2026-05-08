@@ -3,4 +3,6 @@ node_modules/
 test/workspace/.vscode/*
 !test/workspace/.vscode/restore-terminals.json
 *.vsix
+assets/screenshots/marketplace/*_crop.png
+assets/screenshots/marketplace/*-original.gif
 .DS_Store

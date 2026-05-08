@@ -6,5 +6,7 @@ test/**
 DEVELOPMENT.md
 scripts/**
 *.vsix
+assets/screenshots/marketplace/*_crop.png
+assets/screenshots/marketplace/*-original.gif
 assets/icons/png/siide-ico.png
 assets/icons/png/activity-bar-ico.png

@@ -191,6 +191,11 @@
           "type": "object",
           "default": {},
           "description": "Optional per-surface color overrides keyed by surface id."
+        },
+        "camaleone.profileActive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the saved workspace profile should be restored when this workspace opens."
         }
       }
     }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.11
+
+- Restored saved workspace palettes on IDE reopen even when editor workspace state is missing.
+- Kept Restore Previous and Reset IDE Defaults from replaying an intentionally disabled profile.
+
 ## 0.1.10
 
 - Repackaged the 0.1.9 Activity Bar side-pane release under a fresh marketplace version.

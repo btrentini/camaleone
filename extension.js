@@ -11,6 +11,7 @@ const ACTIVITY_VIEW_ID = "camaleone.controls";
 
 const LAST_CHOICES_KEY = `${EXTENSION_PREFIX}.lastChoices`;
 const FAVORITES_KEY = `${EXTENSION_PREFIX}.favorites`;
+const PROFILE_ACTIVE_KEY = `${EXTENSION_PREFIX}.profileActive`;
 const SIDE_BAR_BACKGROUND_ALPHA = 0.58;
 const SURPRISE_DISTINCT_PROBABILITY = 0.8;
 const SURPRISE_DISTINCT_HUE_MIN = 135;
@@ -26,7 +27,8 @@ const WORKSPACE_PROFILE_SETTING_KEYS = [
   "sober",
   "colorRelationship",
   "panelHarmony",
-  "surfaceOverrides"
+  "surfaceOverrides",
+  "profileActive"
 ];
 
 /**
@@ -350,8 +352,8 @@ function activate(context) {
 function deactivate() {}
 
 /**
- * Reapplies an active saved workspace profile on activation. The profile is
- * only replayed when Camaleone previously marked the workspace as active.
+ * Reapplies a saved workspace profile on activation when durable settings say
+ * Camaleone should own the workspace colors.
  */
 async function applySavedWorkspaceProfileOnActivation(context) {
   if (!vscode.workspace.workspaceFolders || !vscode.workspace.workspaceFolders.length) {
@@ -359,13 +361,35 @@ async function applySavedWorkspaceProfileOnActivation(context) {
   }
 
   const target = resolveTarget();
-  const state = getMemento(context, target);
-  if (!state.get(stateKey(target, "active"), false) || !hasSavedWorkspaceProfile(context)) {
+  if (!shouldReplaySavedWorkspaceProfile(context, target)) {
     return false;
   }
 
   await applyColors(context, getCurrentChoices(context));
   return true;
+}
+
+/**
+ * Decides whether a saved workspace profile should be replayed on activation.
+ */
+function shouldReplaySavedWorkspaceProfile(context, target) {
+  const config = vscode.workspace.getConfiguration();
+  const hasProfile = hasSavedWorkspaceProfile(context);
+  if (!hasProfile) {
+    return false;
+  }
+
+  const activeInspection = config.inspect(PROFILE_ACTIVE_KEY);
+  if (hasConfiguredValue(activeInspection)) {
+    return Boolean(config.get(PROFILE_ACTIVE_KEY, false));
+  }
+
+  const state = getMemento(context, target);
+  if (state.get(stateKey(target, "active"), false)) {
+    return true;
+  }
+
+  return hasConfiguredWorkspaceProfile(config);
 }
 
 /**
@@ -377,7 +401,13 @@ function hasSavedWorkspaceProfile(context) {
     return true;
   }
 
-  const config = vscode.workspace.getConfiguration();
+  return hasConfiguredWorkspaceProfile(vscode.workspace.getConfiguration());
+}
+
+/**
+ * Checks whether durable workspace settings contain a Camaleone profile.
+ */
+function hasConfiguredWorkspaceProfile(config) {
   return ["startColor", "endColor"].some((key) => hasConfiguredValue(config.inspect(`${EXTENSION_PREFIX}.${key}`)));
 }
 
@@ -684,6 +714,9 @@ async function applyColors(context, options) {
 async function clearGradient(context) {
   const target = resolveTarget();
   const didClear = await restoreWorkbenchColors(context, target);
+  if (didClear || hasSavedWorkspaceProfile(context)) {
+    await setWorkspaceProfileActive(target, false);
+  }
   vscode.window.showInformationMessage(
     didClear
       ? "Camaleone restored colors from workspace settings."
@@ -905,8 +938,17 @@ async function saveExtensionSettings(context, choices, target) {
   await config.update(`${EXTENSION_PREFIX}.colorRelationship`, choices.colorRelationship, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.panelHarmony`, choices.panelHarmony, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.surfaceOverrides`, choices.surfaceOverrides, target.configurationTarget);
+  await config.update(PROFILE_ACTIVE_KEY, true, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.applyTo`, undefined, target.configurationTarget);
   await config.update(`${EXTENSION_PREFIX}.persistChoices`, undefined, target.configurationTarget);
+}
+
+/**
+ * Persists whether the saved workspace profile should be replayed on startup.
+ */
+async function setWorkspaceProfileActive(target, active) {
+  const config = vscode.workspace.getConfiguration();
+  await config.update(PROFILE_ACTIVE_KEY, Boolean(active), target.configurationTarget);
 }
 
 /**
