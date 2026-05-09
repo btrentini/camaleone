@@ -183,6 +183,19 @@ function nonSoberChoices(overrides = {}) {
   };
 }
 
+function relativeLuminance(hex) {
+  const normalized = String(hex).slice(0, 7);
+  const channels = [1, 3, 5].map((index) => {
+    const value = parseInt(normalized.slice(index, index + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function surfaceSample(id) {
+  return testApi.SURFACE_CONFIGS.find((surface) => surface.id === id).sample;
+}
+
 test("activates Camaleone commands and renders the picker in the Activity Bar", async () => {
   resetState();
   const context = {
@@ -269,10 +282,12 @@ test("defaults use manual relationship with compact title activity and panel sam
   assert.equal(testApi.DEFAULT_CHOICES.sober, true);
 
   const samples = Object.fromEntries(testApi.SURFACE_CONFIGS.map((surface) => [surface.id, surface.sample]));
+  const strengths = Object.fromEntries(testApi.SURFACE_CONFIGS.map((surface) => [surface.id, surface.strength]));
   assert.equal(samples.titleBar, 0);
   assert.equal(samples.remoteIndicator, 0.08);
   assert.equal(samples.activityBar, 0.12);
   assert.equal(samples.panel, 0.34);
+  assert.equal(strengths.sideBar, 1);
   assert.ok(samples.remoteIndicator > samples.titleBar && samples.remoteIndicator < samples.activityBar);
   assert.ok(samples.activityBar - samples.titleBar < samples.panel - samples.activityBar);
   assert.ok(samples.panel < 0.5);
@@ -320,7 +335,8 @@ test("sober intensity affects active identity surfaces", () => {
   assert.notEqual(muted["titleBar.activeBackground"], full["titleBar.activeBackground"]);
   assert.notEqual(muted["activityBar.background"], full["activityBar.background"]);
   assert.notEqual(muted["statusBar.background"], full["statusBar.background"]);
-  assert.equal(muted["sideBar.background"], "#1e1e1e");
+  assert.notEqual(muted["sideBar.background"], full["sideBar.background"]);
+  assert.ok(relativeLuminance(full["sideBar.background"]) < 0.16);
 });
 
 test("tint editor adds active editor accents in sober mode", () => {
@@ -384,7 +400,7 @@ test("button text contrasts with selected button and side bar colors", () => {
 
   assert.equal(darkButtons["button.background"], "#000000");
   assert.equal(darkButtons["button.foreground"], "#ffffff");
-  assert.equal(darkButtons["sideBar.background"], `${darkButtons["button.secondaryBackground"]}94`);
+  assert.equal(darkButtons["sideBar.background"], darkButtons["button.secondaryBackground"]);
   assert.equal(darkButtons["button.secondaryForeground"], "#ffffff");
   assert.equal(darkButtons["activityBarBadge.foreground"], "#ffffff");
 
@@ -398,42 +414,47 @@ test("button text contrasts with selected button and side bar colors", () => {
 
   assert.equal(lightButtons["button.background"], "#ffffff");
   assert.equal(lightButtons["button.foreground"], "#000000");
-  assert.equal(lightButtons["sideBar.background"], `${lightButtons["button.secondaryBackground"]}94`);
+  assert.equal(lightButtons["sideBar.background"], lightButtons["button.secondaryBackground"]);
   assert.equal(lightButtons["button.secondaryForeground"], "#000000");
   assert.equal(lightButtons["activityBarBadge.foreground"], "#000000");
 });
 
-test("non-sober side bar uses translucent palette colors", () => {
+test("non-sober generated side bar samples the selected palette path", () => {
   resetState();
   vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
+  const startColor = "#3366cc";
+  const endColor = "#cc6633";
+  const sample = surfaceSample("sideBar");
 
-  const generated = testApi.createColorCustomizations(nonSoberChoices({
-    startColor: "#3366cc",
-    endColor: "#cc6633",
+  const manual = testApi.createColorCustomizations(nonSoberChoices({
+    startColor,
+    endColor,
+    colorRelationship: "manual",
+    intensity: 100
+  }));
+  const analogous = testApi.createColorCustomizations(nonSoberChoices({
+    startColor,
+    endColor,
+    colorRelationship: "analogous",
+    intensity: 100,
+  }));
+  const complementary = testApi.createColorCustomizations(nonSoberChoices({
+    startColor,
+    endColor,
+    colorRelationship: "complementary",
     intensity: 100
   }));
 
-  assert.match(generated["sideBar.background"], /^#[0-9a-f]{8}$/);
-  assert.equal(generated["sideBar.background"].slice(-2), "94");
-  assert.notEqual(generated["sideBar.background"].slice(0, 7), "#1e1e1e");
-  assert.equal(generated["button.secondaryBackground"], generated["sideBar.background"].slice(0, 7));
-
-  const customized = testApi.createColorCustomizations(nonSoberChoices({
-    startColor: "#3366cc",
-    endColor: "#cc6633",
-    intensity: 100,
-    surfaceOverrides: {
-      sideBar: "#ffffff"
-    }
-  }));
-
-  assert.notEqual(customized["sideBar.background"], "#1e1e1e");
-  assert.match(customized["sideBar.background"], /^#[0-9a-f]{8}$/);
-  assert.equal(customized["sideBar.background"].slice(-2), "94");
-  assert.equal(customized["button.secondaryBackground"], customized["sideBar.background"].slice(0, 7));
+  assert.equal(manual["sideBar.background"], testApi.paletteColor(startColor, endColor, sample, "manual"));
+  assert.equal(analogous["sideBar.background"], testApi.paletteColor(startColor, endColor, sample, "analogous"));
+  assert.equal(complementary["sideBar.background"], testApi.paletteColor(startColor, endColor, sample, "complementary"));
+  assert.equal(manual["button.secondaryBackground"], manual["sideBar.background"]);
+  assert.equal(analogous["button.secondaryBackground"], analogous["sideBar.background"]);
+  assert.equal(complementary["button.secondaryBackground"], complementary["sideBar.background"]);
+  assert.notEqual(analogous["sideBar.background"], complementary["sideBar.background"]);
 });
 
-test("default sober surprise palettes keep the side bar neutral", () => {
+test("default sober surprise palettes keep the side bar dark-biased", () => {
   resetState();
   const palette = testApi.createSurprisePalette();
   const colors = testApi.createColorCustomizations({
@@ -445,10 +466,32 @@ test("default sober surprise palettes keep the side bar neutral", () => {
     surfaceOverrides: {}
   });
 
-  assert.equal(colors["sideBar.background"], "#1e1e1e");
+  assert.match(colors["sideBar.background"], /^#[0-9a-f]{6}$/);
+  assert.ok(relativeLuminance(colors["sideBar.background"]) < 0.16);
 });
 
-test("non-sober surprise palettes use a translucent side bar", () => {
+test("sober generated side bar darkens the selected palette path", () => {
+  resetState();
+  const startColor = "#3366cc";
+  const endColor = "#cc6633";
+  const sample = surfaceSample("sideBar");
+  const colors = testApi.createColorCustomizations({
+    ...testApi.DEFAULT_CHOICES,
+    startColor,
+    endColor,
+    colorRelationship: "analogous",
+    panelHarmony: "analogous",
+    intensity: 100,
+    sober: true,
+    surfaceOverrides: {}
+  });
+  const paletteSideBar = testApi.paletteColor(startColor, endColor, sample, "analogous");
+
+  assert.equal(colors["sideBar.background"], testApi.soberGeneratedSideBarColor(paletteSideBar));
+  assert.ok(relativeLuminance(colors["sideBar.background"]) < relativeLuminance(paletteSideBar));
+});
+
+test("non-sober surprise palettes use an opaque side bar", () => {
   resetState();
   const palette = testApi.createSurprisePalette();
   const colors = testApi.createColorCustomizations(nonSoberChoices({
@@ -459,9 +502,8 @@ test("non-sober surprise palettes use a translucent side bar", () => {
     surfaceOverrides: {}
   }));
 
-  assert.match(colors["sideBar.background"], /^#[0-9a-f]{8}$/);
-  assert.equal(colors["sideBar.background"].slice(-2), "94");
-  assert.notEqual(colors["sideBar.background"].slice(0, 7), "#1e1e1e");
+  assert.match(colors["sideBar.background"], /^#[0-9a-f]{6}$/);
+  assert.notEqual(colors["sideBar.background"], "#1e1e1e");
 });
 
 test("monochromatic mode uses harmony colors instead of a straight gradient", () => {
@@ -533,7 +575,7 @@ test("remote host indicator uses dedicated status bar item colors", () => {
   assert.equal(customized["statusBarItem.remoteForeground"], "#000000");
 });
 
-test("sober mode neutralizes generated surfaces but allows explicit custom surfaces", () => {
+test("sober mode restrains generated surfaces but allows explicit custom surfaces", () => {
   resetState();
   const sober = testApi.createColorCustomizations({
     ...testApi.DEFAULT_CHOICES,
@@ -562,7 +604,7 @@ test("sober mode neutralizes generated surfaces but allows explicit custom surfa
   assert.equal(sober["editor.selectionBackground"], undefined);
 });
 
-test("default sober mode keeps generated secondary surfaces neutral", () => {
+test("default sober mode keeps generated secondary surfaces restrained", () => {
   resetState();
   const sober = testApi.createColorCustomizations({
     ...testApi.DEFAULT_CHOICES,
@@ -575,7 +617,8 @@ test("default sober mode keeps generated secondary surfaces neutral", () => {
     surfaceOverrides: {}
   });
 
-  assert.equal(sober["sideBar.background"], "#1e1e1e");
+  assert.notEqual(sober["sideBar.background"], "#1e1e1e");
+  assert.ok(relativeLuminance(sober["sideBar.background"]) < 0.16);
   assert.equal(sober["panel.border"], "#1e1e1e");
   assert.notEqual(sober["statusBarItem.remoteBackground"], "#1e1e1e");
   assert.equal(sober["button.background"], "#1e1e1e");
@@ -882,11 +925,11 @@ test("default favourites include grouped Magnificent 7, QS, and World Cup palett
   };
 
   const favorites = testApi.getFavorites(context);
-  assert.equal(favorites.length, 32);
+  assert.equal(favorites.length, 27);
   assert.equal(favorites.every((favorite) => favorite.builtin), true);
   assert.equal(favorites.filter((favorite) => favorite.presetGroup === "magnificent-7").length, 7);
   assert.equal(favorites.filter((favorite) => favorite.presetGroup === "qs-world-top-10").length, 10);
-  assert.equal(favorites.filter((favorite) => favorite.presetGroup === "world-cup").length, 15);
+  assert.equal(favorites.filter((favorite) => favorite.presetGroup === "world-cup").length, 10);
 
   const names = favorites.map((favorite) => favorite.name);
   for (const name of [
@@ -916,12 +959,7 @@ test("default favourites include grouped Magnificent 7, QS, and World Cup palett
     "Netherlands",
     "Morocco",
     "Belgium",
-    "Germany",
-    "Croatia",
-    "Italy",
-    "Colombia",
-    "Senegal",
-    "Mexico"
+    "Germany"
   ]) {
     assert.ok(names.includes(name), `${name} should be a default favourite`);
   }
@@ -965,7 +1003,7 @@ test("saved favourites override default favourites by name", async () => {
   assert.equal(nvidiaEntries[0].builtin, false);
   assert.equal(nvidiaEntries[0].presetGroup, "magnificent-7");
   assert.equal(nvidiaEntries[0].startColor, "#123456");
-  assert.equal(favorites.length, 32);
+  assert.equal(favorites.length, 27);
 });
 
 test("preloaded favourites can be edited by saving over their preset name", async () => {
@@ -997,7 +1035,7 @@ test("preloaded favourites can be edited by saving over their preset name", asyn
   assert.equal(nvidiaEntries.length, 1);
   assert.equal(nvidiaEntries[0].builtin, false);
   assert.equal(nvidiaEntries[0].startColor, "#123456");
-  assert.equal(favorites.length, 32);
+  assert.equal(favorites.length, 27);
 });
 
 test("webview save favourite uses provided modal name without native input", async () => {
@@ -1178,8 +1216,9 @@ test("picker html contains the simplified workflow controls", () => {
     "Options",
     "Color behavior",
     "Presets",
+    "All presets",
     "Magnificent 7",
-    "Top 10 QS World",
+    "QS Top 10 Universities",
     "World Cup",
     "Actions",
     "Monochromatic",
@@ -1438,7 +1477,7 @@ test("activity bar picker keeps surface customization in the first preview cards
 
 test("manifest and generated icon assets use the organized paths", () => {
   const manifest = JSON.parse(textFile("package.json"));
-  assert.equal(manifest.version, "0.1.11");
+  assert.equal(manifest.version, "0.1.12");
   assert.equal(manifest.publisher, "trentinium");
   assert.equal(manifest.icon, "assets/icons/ico/camaleone_transparent.ico");
   assert.equal(manifest.repository.url, "https://github.com/btrentini/camaleone.git");
@@ -1548,19 +1587,22 @@ test("manifest and generated icon assets use the organized paths", () => {
   const websiteScreenshotBase = "https://trentini.fyi/camaleone/assets/screenshots/marketplace";
   const websiteScreenshots = [
     "camaleone-feature-flow.gif",
-    "camaleone-v04-6.png",
-    "camaleone-v04-1.png",
-    "camaleone-v04-3.png",
+    "camaleone-v04-2.png",
     "camaleone-v04-4.png",
-    "camaleone-v04-5.png"
+    "camaleone-v04-5.png",
+    "camaleone-v04-6.png"
   ];
   assert.ok(readme.includes("## Screenshots"));
   assert.ok(readme.indexOf("## Screenshots") < readme.indexOf("## How To Use"));
-  assert.ok(readme.includes("<td colspan=\"4\">"));
+  assert.equal(readme.includes("<td colspan="), false);
+  assert.ok(readme.includes("Camaleone Oxford preset dropdown with a blue and white workbench palette"));
   assert.ok(readme.includes("Camaleone Activity Bar side pane open beside an active editor workspace"));
   assert.ok(readme.includes("https://trentini.fyi/camaleone/"));
   for (const filename of websiteScreenshots) {
     assert.ok(readme.includes(`${websiteScreenshotBase}/${filename}`));
+  }
+  for (const filename of ["camaleone-v04-1.png", "camaleone-v04-3.png"]) {
+    assert.equal(readme.includes(`${websiteScreenshotBase}/${filename}`), false);
   }
   assert.equal(readme.includes("](assets/screenshots/marketplace/"), false);
   assert.equal(readme.includes("postimg.cc"), false);
@@ -1647,9 +1689,10 @@ test("README lists default Magnificent 7, university, and World Cup favourites",
   assert.ok(readme.includes("QS 2026 top 10 universities"));
   assert.ok(readme.includes("Stanford University (`#8c1515` and `#dad7cb`)"));
   assert.ok(readme.includes("National University of Singapore (NUS)"));
-  assert.ok(readme.includes("top 15 FIFA men's national teams"));
+  assert.ok(readme.includes("current top 10 FIFA men's national teams"));
   assert.ok(readme.includes("World Cup: France (`#002654` and `#ed2939`)"));
-  assert.ok(readme.includes("Mexico"));
+  assert.ok(readme.includes("Germany"));
+  assert.equal(readme.includes("Mexico"), false);
   assert.ok(readme.includes("To edit a preloaded favourite"));
   assert.ok(readme.includes("prefilled with the preset name"));
 });

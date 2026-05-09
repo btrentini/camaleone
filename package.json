@@ -2,7 +2,7 @@
   "name": "camaleone",
   "displayName": "Camaleone",
   "description": "VS Code Marketplace/Open VSX extension for VS Code, Cursor, and compatible IDE window colours.",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "publisher": "trentinium",
   "license": "MIT",
   "icon": "assets/icons/ico/camaleone_transparent.ico",

@@ -40,7 +40,7 @@ If Camaleone helps your workflow, a review on the VS Code Marketplace or Open VS
 - Per-surface customization for title bar, activity bar, side bar, panel, status bar, remote host, buttons, borders, and editor accents.
 - `Surprise me` palettes biased toward distinctive color pairs instead of mostly similar colors.
 - Automatic workspace profile saving so the selected palette is ready when the workspace opens again.
-- Built-in presets for Magnificent 7 companies, QS 2026 top universities, and top FIFA national teams.
+- Built-in preset filters for Magnificent 7 companies, QS 2026 top universities, and current top-10 FIFA World Cup teams.
 - Favourite palettes for reusable workspace identities.
 - Clean restore and reset commands for returning to previous colors or IDE defaults.
 
@@ -58,35 +58,28 @@ Click any image to open the Camaleone website. These images are loaded from `htt
 
 [![Camaleone animated walkthrough starting with the Activity Bar shortcut, then fading into the picker, preview, customization, presets, and saved favourites](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-feature-flow.gif)](https://trentini.fyi/camaleone/)
 
-[![Camaleone Activity Bar side pane screenshot showing the compact left panel beside an active workspace](https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-6.png)](https://trentini.fyi/camaleone/)
-
 <table>
   <tr>
-    <td colspan="4">
+    <td width="50%">
       <a href="https://trentini.fyi/camaleone/">
-        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-6.png" alt="Camaleone Activity Bar side pane open beside an active editor workspace" width="100%">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-2.png" alt="Camaleone Oxford preset dropdown with a blue and white workbench palette" width="100%">
+      </a>
+    </td>
+    <td width="50%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-4.png" alt="Camaleone red and gold palette with the native color picker open" width="100%">
       </a>
     </td>
   </tr>
   <tr>
-    <td width="25%">
-      <a href="https://trentini.fyi/camaleone/">
-        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-1.png" alt="Camaleone orange and cyan palette with custom surface controls and options" width="100%">
-      </a>
-    </td>
-    <td width="25%">
-      <a href="https://trentini.fyi/camaleone/">
-        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-3.png" alt="Camaleone green and white palette with the native color picker open" width="100%">
-      </a>
-    </td>
-    <td width="25%">
-      <a href="https://trentini.fyi/camaleone/">
-        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-4.png" alt="Camaleone red and yellow palette with the native color picker open" width="100%">
-      </a>
-    </td>
-    <td width="25%">
+    <td width="50%">
       <a href="https://trentini.fyi/camaleone/">
         <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-5.png" alt="Camaleone muted yellow and blue palette with the save favourite dialog open" width="100%">
+      </a>
+    </td>
+    <td width="50%">
+      <a href="https://trentini.fyi/camaleone/">
+        <img src="https://trentini.fyi/camaleone/assets/screenshots/marketplace/camaleone-v04-6.png" alt="Camaleone Activity Bar side pane open beside an active editor workspace" width="100%">
       </a>
     </td>
   </tr>
@@ -115,11 +108,11 @@ Full picker flow:
 
 ## Preloaded Favourites
 
-Camaleone ships with default favourites for the Magnificent 7 companies, the QS 2026 top 10 universities, and the top 15 FIFA men's national teams. These presets are brand- or flag-inspired two-color profiles, so they fit Camaleone's workbench model while keeping the names recognizable.
+Camaleone ships with default favourites for the Magnificent 7 companies, the QS 2026 top 10 universities, and the current top 10 FIFA men's national teams for the World Cup preset group. These presets are brand- or flag-inspired two-color profiles, so they fit Camaleone's workbench model while keeping the names recognizable.
 
 - Magnificent 7: Apple, Microsoft, Alphabet, Amazon, Meta, NVIDIA (`#76b900`), and Tesla.
 - QS 2026 top 10 universities: Massachusetts Institute of Technology (MIT), Imperial College London, Stanford University (`#8c1515` and `#dad7cb`), University of Oxford, Harvard University, University of Cambridge, ETH Zurich, National University of Singapore (NUS), UCL, and California Institute of Technology (Caltech).
-- World Cup: France (`#002654` and `#ed2939`), Spain, Argentina, England, Portugal, Brazil, Netherlands, Morocco, Belgium, Germany, Croatia, Italy, Colombia, Senegal, and Mexico.
+- World Cup: France (`#002654` and `#ed2939`), Spain, Argentina, England, Portugal, Brazil, Netherlands, Morocco, Belgium, and Germany.
 - To edit a preloaded favourite, choose it from the favourites list, adjust the colors or custom surfaces, then click `Save as favourite...`. The save prompt is prefilled with the preset name, and saving creates your editable override.
 
 ## Commands

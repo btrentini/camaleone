@@ -12,7 +12,7 @@ const ACTIVITY_VIEW_ID = "camaleone.controls";
 const LAST_CHOICES_KEY = `${EXTENSION_PREFIX}.lastChoices`;
 const FAVORITES_KEY = `${EXTENSION_PREFIX}.favorites`;
 const PROFILE_ACTIVE_KEY = `${EXTENSION_PREFIX}.profileActive`;
-const SIDE_BAR_BACKGROUND_ALPHA = 0.58;
+const SOBER_SIDE_BAR_GENERATED_COLOR_WEIGHT = 0.42;
 const SURPRISE_DISTINCT_PROBABILITY = 0.8;
 const SURPRISE_DISTINCT_HUE_MIN = 135;
 const SURPRISE_DISTINCT_HUE_MAX = 225;
@@ -120,7 +120,7 @@ const SURFACE_CONFIGS = [
     id: "sideBar",
     label: "Side Bar",
     sample: 0.34,
-    strength: 0.72,
+    strength: 1,
     description: "Explorer and side-panel background."
   },
   {
@@ -183,9 +183,9 @@ const PRESET_GROUPS = {
 };
 
 const PRESET_FILTERS = [
-  { id: "all", label: "All" },
+  { id: "all", label: "All presets" },
   { id: PRESET_GROUPS.MAGNIFICENT_7, label: "Magnificent 7" },
-  { id: PRESET_GROUPS.QS_WORLD_TOP_10, label: "Top 10 QS World" },
+  { id: PRESET_GROUPS.QS_WORLD_TOP_10, label: "QS Top 10 Universities" },
   { id: PRESET_GROUPS.WORLD_CUP, label: "World Cup" }
 ];
 
@@ -245,26 +245,6 @@ const DEFAULT_FAVORITES = [
   defaultFavorite("world-cup-germany", "Germany", "#000000", "#c1121c", {
     panel: "#ff9b00",
     buttons: "#c1121c"
-  }),
-  defaultFavorite("world-cup-croatia", "Croatia", "#f00000", "#171796", {
-    panel: "#ffffff",
-    buttons: "#0093dd"
-  }),
-  defaultFavorite("world-cup-italy", "Italy", "#008c45", "#cd212a", {
-    panel: "#f4f5f0",
-    buttons: "#cd212a"
-  }),
-  defaultFavorite("world-cup-colombia", "Colombia", "#fcd116", "#003893", {
-    panel: "#ce1126",
-    buttons: "#003893"
-  }),
-  defaultFavorite("world-cup-senegal", "Senegal", "#00853f", "#fdef42", {
-    panel: "#e31b23",
-    buttons: "#00853f"
-  }),
-  defaultFavorite("world-cup-mexico", "Mexico", "#006847", "#ce1126", {
-    panel: "#ffffff",
-    buttons: "#ce1126"
   })
 ];
 
@@ -1597,11 +1577,11 @@ function createColorCustomizations(choices) {
     });
   }
 
-  // Non-sober mode applies the sampled palette broadly, with translucent side bar color.
+  // Non-sober mode applies the sampled palette path broadly with an opaque side
+  // bar, so generated sidebar colours can use the full selected spectrum.
   const title = surface("titleBar");
   const activity = surface("activityBar");
   const side = surface("sideBar");
-  const sideBackground = withAlpha(side, SIDE_BAR_BACKGROUND_ALPHA);
   const sideForeground = contrastColor(side);
   const panel = surface("panel");
   const status = surface("statusBar");
@@ -1647,7 +1627,7 @@ function createColorCustomizations(choices) {
     "list.inactiveSelectionBackground": withAlpha(panel, 0.28),
     "panel.border": panel,
     "panelTitle.activeBorder": panel,
-    "sideBar.background": sideBackground,
+    "sideBar.background": side,
     "sideBar.foreground": sideForeground,
     "sideBarSectionHeader.background": withAlpha(panel, 0.22),
     "sideBarSectionHeader.foreground": sideForeground,
@@ -1682,8 +1662,9 @@ function createColorCustomizations(choices) {
 }
 
 /**
- * Creates the restrained default color map: mostly neutral chrome with only the
- * title bar, activity bar, and status bar carrying the identity colors.
+ * Creates the restrained default color map: mostly neutral chrome with the
+ * title bar, activity bar, status bar, and dark-biased side bar carrying the
+ * identity colors.
  */
 function createSoberColorCustomizations(startColor, endColor, colorRelationship, options = {}) {
   const neutral = "#1e1e1e";
@@ -1702,7 +1683,10 @@ function createSoberColorCustomizations(startColor, endColor, colorRelationship,
   };
   const title = blendSurface("titleBar", generatedSurfaceColor(0));
   const activity = blendSurface("activityBar", generatedSurfaceColor(surfaceSample("activityBar", 0.12)));
-  const side = blendSurface("sideBar", neutral);
+  const side = blendSurface(
+    "sideBar",
+    soberGeneratedSideBarColor(generatedSurfaceColor(surfaceSample("sideBar", 0.34)))
+  );
   const panel = blendSurface("panel", neutral);
   const status = blendSurface("statusBar", generatedSurfaceColor(1));
   const remoteIndicator = blendSurface("remoteIndicator", generatedSurfaceColor(surfaceSample("remoteIndicator", 0.08)));
@@ -1785,6 +1769,13 @@ function createSoberColorCustomizations(startColor, endColor, colorRelationship,
 function surfaceSample(id, fallback) {
   const config = SURFACE_CONFIGS.find((entry) => entry.id === id);
   return config ? config.sample : fallback;
+}
+
+/**
+ * Keeps generated sober side bars tied to the palette while biasing them dark.
+ */
+function soberGeneratedSideBarColor(color) {
+  return blendColor("#000000", color, SOBER_SIDE_BAR_GENERATED_COLOR_WEIGHT);
 }
 
 /**
@@ -3114,7 +3105,7 @@ ${customizeSectionHtml}
     let favorites = Array.isArray(state.favorites) ? state.favorites : [];
     let selectedFavoriteName;
     let activePresetFilter = "all";
-    const sideBarBackgroundAlpha = ${SIDE_BAR_BACKGROUND_ALPHA};
+    const soberSideBarGeneratedColorWeight = ${SOBER_SIDE_BAR_GENERATED_COLOR_WEIGHT};
     let applyTimer;
 
     /**
@@ -3548,6 +3539,13 @@ ${customizeSectionHtml}
     }
 
     /**
+     * Keeps generated sober side bars tied to the palette while biasing them dark.
+     */
+    function soberGeneratedSideBarColor(color) {
+      return mix("#000000", color, soberSideBarGeneratedColorWeight);
+    }
+
+    /**
      * Adds alpha to a preview color for translucent surfaces.
      */
     function withAlpha(hex, alpha) {
@@ -3748,7 +3746,8 @@ ${customizeSectionHtml}
       const harmonyMode = selectedHarmonyRelationship();
       const colors = {};
 
-      // Sober mode intentionally keeps secondary surfaces neutral.
+      // Sober mode keeps secondary surfaces restrained; generated side bars stay
+      // palette-tinted but dark-biased unless explicitly customized.
       for (const surface of surfaces) {
         const hasCustomOverride = !ignoreCustom && overrides[surface.id];
 
@@ -3774,6 +3773,12 @@ ${customizeSectionHtml}
                 ? harmonyColor(start, surface.sample, harmonyMode)
                 : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
             }
+            if (surface.id === "sideBar") {
+              const generated = monochromatic
+                ? harmonyColor(start, surface.sample, harmonyMode)
+                : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
+              return soberGeneratedSideBarColor(generated);
+            }
             if (surface.id === "editorAccent" && elements.includeEditorAccent.checked) {
               return monochromatic
                 ? harmonyColor(start, surface.sample, harmonyMode)
@@ -3791,7 +3796,7 @@ ${customizeSectionHtml}
           : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
         const source = hasCustomOverride ? overrides[surface.id] : generated;
         const color = mix(base, source, Math.max(0, Math.min(1, intensity * surface.strength)));
-        colors[surface.id] = surface.id === "sideBar" ? withAlpha(color, sideBarBackgroundAlpha) : color;
+        colors[surface.id] = color;
       }
 
       return colors;
@@ -4208,6 +4213,8 @@ module.exports = {
     createColorCustomizations,
     createIdeDefaultChoices,
     createSurprisePalette,
+    paletteColor,
+    soberGeneratedSideBarColor,
     getFavorites,
     getPickerHtml,
     removeManagedWorkbenchColorKeys,
