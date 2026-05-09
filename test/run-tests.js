@@ -335,8 +335,8 @@ test("sober intensity affects active identity surfaces", () => {
   assert.notEqual(muted["titleBar.activeBackground"], full["titleBar.activeBackground"]);
   assert.notEqual(muted["activityBar.background"], full["activityBar.background"]);
   assert.notEqual(muted["statusBar.background"], full["statusBar.background"]);
-  assert.notEqual(muted["sideBar.background"], full["sideBar.background"]);
-  assert.ok(relativeLuminance(full["sideBar.background"]) < 0.16);
+  assert.equal(full["sideBar.background"], "#1e1e1e");
+  assert.equal(muted["sideBar.background"], "#1e1e1e");
 });
 
 test("tint editor adds active editor accents in sober mode", () => {
@@ -419,7 +419,7 @@ test("button text contrasts with selected button and side bar colors", () => {
   assert.equal(lightButtons["activityBarBadge.foreground"], "#000000");
 });
 
-test("non-sober generated side bar samples the selected palette path", () => {
+test("non-sober generated side bar darkens the selected palette path", () => {
   resetState();
   vscodeMock.window.activeColorTheme = { kind: vscodeMock.ColorThemeKind.Dark };
   const startColor = "#3366cc";
@@ -445,16 +445,23 @@ test("non-sober generated side bar samples the selected palette path", () => {
     intensity: 100
   }));
 
-  assert.equal(manual["sideBar.background"], testApi.paletteColor(startColor, endColor, sample, "manual"));
-  assert.equal(analogous["sideBar.background"], testApi.paletteColor(startColor, endColor, sample, "analogous"));
-  assert.equal(complementary["sideBar.background"], testApi.paletteColor(startColor, endColor, sample, "complementary"));
+  const manualSample = testApi.paletteColor(startColor, endColor, sample, "manual");
+  const analogousSample = testApi.paletteColor(startColor, endColor, sample, "analogous");
+  const complementarySample = testApi.paletteColor(startColor, endColor, sample, "complementary");
+
+  assert.equal(manual["sideBar.background"], testApi.darkenGeneratedSideBarColor(manualSample));
+  assert.equal(analogous["sideBar.background"], testApi.darkenGeneratedSideBarColor(analogousSample));
+  assert.equal(complementary["sideBar.background"], testApi.darkenGeneratedSideBarColor(complementarySample));
+  assert.ok(relativeLuminance(manual["sideBar.background"]) < relativeLuminance(manualSample));
+  assert.ok(relativeLuminance(analogous["sideBar.background"]) < relativeLuminance(analogousSample));
+  assert.ok(relativeLuminance(complementary["sideBar.background"]) < relativeLuminance(complementarySample));
   assert.equal(manual["button.secondaryBackground"], manual["sideBar.background"]);
   assert.equal(analogous["button.secondaryBackground"], analogous["sideBar.background"]);
   assert.equal(complementary["button.secondaryBackground"], complementary["sideBar.background"]);
   assert.notEqual(analogous["sideBar.background"], complementary["sideBar.background"]);
 });
 
-test("default sober surprise palettes keep the side bar dark-biased", () => {
+test("default sober surprise palettes keep the side bar dark", () => {
   resetState();
   const palette = testApi.createSurprisePalette();
   const colors = testApi.createColorCustomizations({
@@ -466,11 +473,10 @@ test("default sober surprise palettes keep the side bar dark-biased", () => {
     surfaceOverrides: {}
   });
 
-  assert.match(colors["sideBar.background"], /^#[0-9a-f]{6}$/);
-  assert.ok(relativeLuminance(colors["sideBar.background"]) < 0.16);
+  assert.equal(colors["sideBar.background"], "#1e1e1e");
 });
 
-test("sober generated side bar darkens the selected palette path", () => {
+test("sober generated side bar stays dark instead of following the palette path", () => {
   resetState();
   const startColor = "#3366cc";
   const endColor = "#cc6633";
@@ -485,10 +491,8 @@ test("sober generated side bar darkens the selected palette path", () => {
     sober: true,
     surfaceOverrides: {}
   });
-  const paletteSideBar = testApi.paletteColor(startColor, endColor, sample, "analogous");
-
-  assert.equal(colors["sideBar.background"], testApi.soberGeneratedSideBarColor(paletteSideBar));
-  assert.ok(relativeLuminance(colors["sideBar.background"]) < relativeLuminance(paletteSideBar));
+  assert.notEqual(colors["sideBar.background"], testApi.paletteColor(startColor, endColor, sample, "analogous"));
+  assert.equal(colors["sideBar.background"], "#1e1e1e");
 });
 
 test("non-sober surprise palettes use an opaque side bar", () => {
@@ -504,6 +508,7 @@ test("non-sober surprise palettes use an opaque side bar", () => {
 
   assert.match(colors["sideBar.background"], /^#[0-9a-f]{6}$/);
   assert.notEqual(colors["sideBar.background"], "#1e1e1e");
+  assert.ok(relativeLuminance(colors["sideBar.background"]) < 0.12);
 });
 
 test("monochromatic mode uses harmony colors instead of a straight gradient", () => {
@@ -617,8 +622,7 @@ test("default sober mode keeps generated secondary surfaces restrained", () => {
     surfaceOverrides: {}
   });
 
-  assert.notEqual(sober["sideBar.background"], "#1e1e1e");
-  assert.ok(relativeLuminance(sober["sideBar.background"]) < 0.16);
+  assert.equal(sober["sideBar.background"], "#1e1e1e");
   assert.equal(sober["panel.border"], "#1e1e1e");
   assert.notEqual(sober["statusBarItem.remoteBackground"], "#1e1e1e");
   assert.equal(sober["button.background"], "#1e1e1e");

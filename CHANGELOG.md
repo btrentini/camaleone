@@ -2,8 +2,8 @@
 
 ## 0.1.12
 
-- Kept generated Side Bar colours on the selected start/end palette path, including analogous and complementary relationships.
-- Made Sober mode darken generated Side Bar colours while leaving non-sober generated colours full-strength.
+- Kept generated Side Bar colours on dark, near-black tones of the selected start/end palette path, including analogous and complementary relationships.
+- Kept Sober mode Side Bar colours dark/black while preserving explicit custom surface overrides.
 - Removed the redundant workspace-name status bar item.
 
 ## 0.1.11

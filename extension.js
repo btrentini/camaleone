@@ -12,7 +12,7 @@ const ACTIVITY_VIEW_ID = "camaleone.controls";
 const LAST_CHOICES_KEY = `${EXTENSION_PREFIX}.lastChoices`;
 const FAVORITES_KEY = `${EXTENSION_PREFIX}.favorites`;
 const PROFILE_ACTIVE_KEY = `${EXTENSION_PREFIX}.profileActive`;
-const SOBER_SIDE_BAR_GENERATED_COLOR_WEIGHT = 0.42;
+const SIDE_BAR_GENERATED_COLOR_WEIGHT = 0.32;
 const SURPRISE_DISTINCT_PROBABILITY = 0.8;
 const SURPRISE_DISTINCT_HUE_MIN = 135;
 const SURPRISE_DISTINCT_HUE_MAX = 225;
@@ -1563,7 +1563,8 @@ function createColorCustomizations(choices) {
     if (!config) {
       return sample(0.5);
     }
-    const source = overrides[id] || generatedSurfaceColor(config.sample);
+    const generated = generatedSurfaceColor(config.sample);
+    const source = overrides[id] || (id === "sideBar" ? darkenGeneratedSideBarColor(generated) : generated);
     return blendColor(base, source, blendAmount(config.strength));
   };
 
@@ -1577,8 +1578,8 @@ function createColorCustomizations(choices) {
     });
   }
 
-  // Non-sober mode applies the sampled palette path broadly with an opaque side
-  // bar, so generated sidebar colours can use the full selected spectrum.
+  // Non-sober mode applies the sampled palette path broadly; generated side bar
+  // colours keep the selected hue but are biased toward near-black tones.
   const title = surface("titleBar");
   const activity = surface("activityBar");
   const side = surface("sideBar");
@@ -1663,8 +1664,7 @@ function createColorCustomizations(choices) {
 
 /**
  * Creates the restrained default color map: mostly neutral chrome with the
- * title bar, activity bar, status bar, and dark-biased side bar carrying the
- * identity colors.
+ * title bar, activity bar, and status bar carrying the identity colors.
  */
 function createSoberColorCustomizations(startColor, endColor, colorRelationship, options = {}) {
   const neutral = "#1e1e1e";
@@ -1683,10 +1683,7 @@ function createSoberColorCustomizations(startColor, endColor, colorRelationship,
   };
   const title = blendSurface("titleBar", generatedSurfaceColor(0));
   const activity = blendSurface("activityBar", generatedSurfaceColor(surfaceSample("activityBar", 0.12)));
-  const side = blendSurface(
-    "sideBar",
-    soberGeneratedSideBarColor(generatedSurfaceColor(surfaceSample("sideBar", 0.34)))
-  );
+  const side = blendSurface("sideBar", neutral);
   const panel = blendSurface("panel", neutral);
   const status = blendSurface("statusBar", generatedSurfaceColor(1));
   const remoteIndicator = blendSurface("remoteIndicator", generatedSurfaceColor(surfaceSample("remoteIndicator", 0.08)));
@@ -1772,10 +1769,10 @@ function surfaceSample(id, fallback) {
 }
 
 /**
- * Keeps generated sober side bars tied to the palette while biasing them dark.
+ * Keeps generated side bars tied to the palette while biasing them near black.
  */
-function soberGeneratedSideBarColor(color) {
-  return blendColor("#000000", color, SOBER_SIDE_BAR_GENERATED_COLOR_WEIGHT);
+function darkenGeneratedSideBarColor(color) {
+  return blendColor("#000000", color, SIDE_BAR_GENERATED_COLOR_WEIGHT);
 }
 
 /**
@@ -3105,7 +3102,7 @@ ${customizeSectionHtml}
     let favorites = Array.isArray(state.favorites) ? state.favorites : [];
     let selectedFavoriteName;
     let activePresetFilter = "all";
-    const soberSideBarGeneratedColorWeight = ${SOBER_SIDE_BAR_GENERATED_COLOR_WEIGHT};
+    const sideBarGeneratedColorWeight = ${SIDE_BAR_GENERATED_COLOR_WEIGHT};
     let applyTimer;
 
     /**
@@ -3539,10 +3536,10 @@ ${customizeSectionHtml}
     }
 
     /**
-     * Keeps generated sober side bars tied to the palette while biasing them dark.
+     * Keeps generated side bars tied to the palette while biasing them near black.
      */
-    function soberGeneratedSideBarColor(color) {
-      return mix("#000000", color, soberSideBarGeneratedColorWeight);
+    function darkenGeneratedSideBarColor(color) {
+      return mix("#000000", color, sideBarGeneratedColorWeight);
     }
 
     /**
@@ -3746,8 +3743,8 @@ ${customizeSectionHtml}
       const harmonyMode = selectedHarmonyRelationship();
       const colors = {};
 
-      // Sober mode keeps secondary surfaces restrained; generated side bars stay
-      // palette-tinted but dark-biased unless explicitly customized.
+      // Sober mode keeps generated secondary surfaces dark unless explicitly
+      // customized.
       for (const surface of surfaces) {
         const hasCustomOverride = !ignoreCustom && overrides[surface.id];
 
@@ -3774,10 +3771,7 @@ ${customizeSectionHtml}
                 : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
             }
             if (surface.id === "sideBar") {
-              const generated = monochromatic
-                ? harmonyColor(start, surface.sample, harmonyMode)
-                : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
-              return soberGeneratedSideBarColor(generated);
+              return "#1e1e1e";
             }
             if (surface.id === "editorAccent" && elements.includeEditorAccent.checked) {
               return monochromatic
@@ -3794,7 +3788,9 @@ ${customizeSectionHtml}
         const generated = monochromatic
           ? harmonyColor(start, surface.sample, harmonyMode)
           : paletteColor(start, end, surface.sample, elements.panelHarmony.value);
-        const source = hasCustomOverride ? overrides[surface.id] : generated;
+        const source = hasCustomOverride
+          ? overrides[surface.id]
+          : (surface.id === "sideBar" ? darkenGeneratedSideBarColor(generated) : generated);
         const color = mix(base, source, Math.max(0, Math.min(1, intensity * surface.strength)));
         colors[surface.id] = color;
       }
@@ -4213,8 +4209,8 @@ module.exports = {
     createColorCustomizations,
     createIdeDefaultChoices,
     createSurprisePalette,
+    darkenGeneratedSideBarColor,
     paletteColor,
-    soberGeneratedSideBarColor,
     getFavorites,
     getPickerHtml,
     removeManagedWorkbenchColorKeys,
